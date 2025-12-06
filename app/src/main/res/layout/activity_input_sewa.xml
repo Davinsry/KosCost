@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#FAFAFA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Form Check-In Penghuni"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"
+            android:textColor="#333"/>
+
+        <TextView
+            android:text="Data Diri"
+            android:textStyle="bold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_nama_penghuni"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nama Lengkap (Contoh: Rizki)"
+            android:inputType="textPersonName"/>
+
+        <EditText
+            android:id="@+id/et_nomor_wa"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nomor WA (08xxxxx)"
+            android:inputType="phone"/>
+
+        <EditText
+            android:id="@+id/et_pekerjaan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Pekerjaan (Mhs/Karyawan)"
+            android:inputType="text"/>
+
+        <TextView
+            android:text="Data Sewa"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_nomor_kamar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nomor Kamar (Contoh: 203)"
+            android:inputType="number"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/et_tgl_checkin"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="Tgl Masuk (25-Nov-2025)"
+                android:inputType="date"/>
+
+            <EditText
+                android:id="@+id/et_tgl_checkout"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="Tgl Keluar (25-Des-2025)"
+                android:inputType="date"/>
+        </LinearLayout>
+
+        <TextView
+            android:text="Pembayaran"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <EditText
+            android:id="@+id/et_total_harga"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Total Harga Sewa (Rp)"
+            android:inputType="number"/>
+
+        <EditText
+            android:id="@+id/et_jumlah_bayar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Uang Yang Dibayarkan (Rp)"
+            android:inputType="number"/>
+
+        <EditText
+            android:id="@+id/et_metode_bayar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Metode (Tunai/Transfer)"
+            android:inputType="text"/>
+
+        <Button
+            android:id="@+id/btn_simpan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Simpan &amp; Cetak Kuitansi"
+            android:layout_marginTop="24dp"
+            android:backgroundTint="#0D47A1"
+            android:textColor="#FFF"
+            android:textStyle="bold"/>
+
+    </LinearLayout>
+</ScrollView>

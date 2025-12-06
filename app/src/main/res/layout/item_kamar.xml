@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_kamar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tv_nomor_kamar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Kamar 101"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"/>
+
+        <TextView
+            android:id="@+id/tv_status_kamar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="KOSONG"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:textStyle="bold"
+            android:textColor="#4CAF50"/> <TextView
+        android:id="@+id/tv_fasilitas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AC, WiFi"
+        android:textSize="12sp"
+        android:layout_marginTop="8dp"
+        android:textColor="#757575"/>
+
+        <TextView
+            android:id="@+id/tv_harga"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rp 1.500.000 / bln"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp"
+            android:textColor="#0D47A1"/>
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
