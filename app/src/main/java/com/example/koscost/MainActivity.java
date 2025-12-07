@@ -9,43 +9,43 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.koscost.activities.LoginActivity;
-import com.example.koscost.activities.TambahKamarActivity; // Import Activity Tambah Kamar
+import com.example.koscost.activities.TambahKamarActivity;
+import com.example.koscost.activities.LaporanActivity;
+import com.example.koscost.activities.ProfileActivity; // Import ProfileActivity (jika ada)
 import com.example.koscost.adapter.KamarAdapter;
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
+import com.example.koscost.database.DatabaseHelper; // JANGAN LUPA INI
 import com.example.koscost.model.Kamar;
 import com.example.koscost.utils.SessionManager;
-import com.google.android.material.floatingactionbutton.FloatingActionButton; // Import FAB
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-private DatabaseHelper dbHelper;
-
-import com.example.koscost.api.ApiService;
-
 public class MainActivity extends AppCompatActivity {
 
     private RecyclerView rvKamar;
     private KamarAdapter adapter;
     private SessionManager sessionManager;
+    private DatabaseHelper dbHelper; // Ditaruh di dalam class
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Inisialisasi Helper
         dbHelper = new DatabaseHelper(this);
-
         sessionManager = new SessionManager(this);
 
         // Setup RecyclerView
         rvKamar = findViewById(R.id.rv_kamar);
         rvKamar.setLayoutManager(new GridLayoutManager(this, 2));
 
-        // --- 1. Logika Tombol Logout ---
+        // --- 1. Tombol Logout ---
         ImageButton btnLogout = findViewById(R.id.btn_logout);
         if (btnLogout != null) {
             btnLogout.setOnClickListener(v -> {
@@ -57,21 +57,34 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // --- 2. Logika Floating Action Button (Tambah Kamar) ---
+        // --- 2. Tombol Tambah Kamar (FAB) ---
         FloatingActionButton fab = findViewById(R.id.fab_tambah);
-        if (fab != null) { // Cek null safety
+        if (fab != null) {
             fab.setOnClickListener(v -> {
                 Intent intent = new Intent(MainActivity.this, TambahKamarActivity.class);
                 startActivity(intent);
             });
         }
+
+        // --- 3. Tombol Laporan ---
         ImageButton btnLaporan = findViewById(R.id.btn_laporan);
-        btnLaporan.setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, com.example.koscost.activities.LaporanActivity.class));
-        });
+        if (btnLaporan != null) {
+            btnLaporan.setOnClickListener(v -> {
+                startActivity(new Intent(MainActivity.this, LaporanActivity.class));
+            });
+        }
+
+        // --- 4. Tombol Profile (OPSIONAL: Jika di XML sudah ditambah tombol profile) ---
+        /* ImageButton btnProfile = findViewById(R.id.btn_profile);
+        if (btnProfile != null) {
+             btnProfile.setOnClickListener(v -> {
+                 startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+             });
+        }
+        */
     }
 
-    // --- 3. Refresh Data saat kembali ke halaman ini ---
+    // --- Refresh Data saat kembali ke halaman ini ---
     @Override
     protected void onResume() {
         super.onResume();
@@ -82,17 +95,18 @@ public class MainActivity extends AppCompatActivity {
         String emailUser = sessionManager.getEmail();
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
+        // Panggil API
         apiService.getDaftarKamar(emailUser).enqueue(new Callback<List<Kamar>>() {
             @Override
             public void onResponse(Call<List<Kamar>> call, Response<List<Kamar>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<Kamar> list = response.body();
 
-                    // 1. Tampilkan Data
+                    // 1. Tampilkan Data dari Server
                     adapter = new KamarAdapter(MainActivity.this, list);
                     rvKamar.setAdapter(adapter);
 
-                    // 2. SIMPAN KE LOKAL (UNTUK OFFLINE NANTI)
+                    // 2. SIMPAN KE LOKAL (UNTUK CADANGAN OFFLINE)
                     dbHelper.simpanKamarOffline(list);
                 }
             }

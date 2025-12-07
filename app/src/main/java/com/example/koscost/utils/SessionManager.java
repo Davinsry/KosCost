@@ -40,4 +40,10 @@ public class SessionManager {
         editor.clear();
         editor.commit();
     }
+    // Update data sesi saat user mengganti profil
+    public void updateSession(String newEmail, String newNamaKos) {
+        editor.putString(KEY_EMAIL, newEmail);
+        editor.putString(KEY_NAMA_KOS, newNamaKos);
+        editor.commit();
+    }
 }
