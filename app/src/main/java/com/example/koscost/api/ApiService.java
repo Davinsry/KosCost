@@ -41,6 +41,7 @@ public interface ApiService {
     @FormUrlEncoded
     @POST("simpan_sewa.php")
     Call<ResponseBody> simpanSewa(
+            @Field("email") String email, // <--- TAMBAHKAN INI (WAJIB)
             @Field("no_kamar") String noKamar,
             @Field("nama_penghuni") String nama,
             @Field("no_wa") String noWa,

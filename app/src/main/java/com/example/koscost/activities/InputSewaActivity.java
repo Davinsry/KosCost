@@ -13,7 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.koscost.R;
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
-import com.example.koscost.utils.CurrencyTextWatcher; // Pastikan class ini sudah dibuat
+import com.example.koscost.utils.CurrencyTextWatcher; // Pastikan ini ada
+import com.example.koscost.utils.SessionManager; // Tambah SessionManager
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -25,24 +26,24 @@ import java.util.Locale;
 
 public class InputSewaActivity extends AppCompatActivity {
 
-    // 1. Deklarasi Variabel (Sudah dirapikan)
     EditText etNama, etWa, etPekerjaan, etTglIn, etTglOut, etTotal, etBayar, etMetode;
-    TextView tvNoKamar; // Pakai TextView karena tidak bisa diedit
+    TextView tvNoKamar;
     Button btnSimpan;
+    SessionManager sessionManager; // Variabel Session
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_input_sewa);
 
-        // 2. Binding (Sambungkan variabel dengan ID di XML)
+        // Inisialisasi Session
+        sessionManager = new SessionManager(this);
+
+        // Binding
         etNama = findViewById(R.id.et_nama_penghuni);
         etWa = findViewById(R.id.et_nomor_wa);
         etPekerjaan = findViewById(R.id.et_pekerjaan);
-
-        // Pastikan di XML ID-nya benar. Walaupun TextView, ID-nya bisa tetap et_nomor_kamar
-        tvNoKamar = findViewById(R.id.et_nomor_kamar);
-
+        tvNoKamar = findViewById(R.id.et_nomor_kamar); // Pastikan di XML pakai TextView
         etTglIn = findViewById(R.id.et_tgl_checkin);
         etTglOut = findViewById(R.id.et_tgl_checkout);
         etTotal = findViewById(R.id.et_total_harga);
@@ -50,34 +51,29 @@ public class InputSewaActivity extends AppCompatActivity {
         etMetode = findViewById(R.id.et_metode_bayar);
         btnSimpan = findViewById(R.id.btn_simpan);
 
-        // 3. Ambil Nomor Kamar dari Intent (Dashboard)
+        // Ambil Nomor Kamar
         String noKamar = getIntent().getStringExtra("NO_KAMAR");
         if (noKamar != null) {
             tvNoKamar.setText(noKamar);
         }
 
-        // 4. Pasang Format Uang (Agar ada titiknya, misal 1.500.000)
+        // Pasang Format Uang
         etTotal.addTextChangedListener(new CurrencyTextWatcher(etTotal));
         etBayar.addTextChangedListener(new CurrencyTextWatcher(etBayar));
 
-        // 5. Pasang Kalendar (Date Picker)
+        // Pasang Kalendar
         setupDatePicker(etTglIn);
         setupDatePicker(etTglOut);
 
-        // 6. Aksi Tombol Simpan
         btnSimpan.setOnClickListener(v -> simpanData());
     }
 
-    // Fungsi untuk menampilkan Kalendar saat diklik
     private void setupDatePicker(EditText editText) {
-        editText.setFocusable(false); // Biar keyboard tidak muncul
+        editText.setFocusable(false);
         editText.setClickable(true);
         editText.setOnClickListener(v -> {
             Calendar c = Calendar.getInstance();
             new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
-                // Format tanggal untuk Database (YYYY-MM-DD)
-                // String formatDB = String.format(Locale.US, "%d-%02d-%02d", year, month + 1, dayOfMonth);
-                // Kita tampilkan langsung format DB di EditText biar gampang
                 String selectedDate = String.format(Locale.US, "%d-%02d-%02d", year, month + 1, dayOfMonth);
                 editText.setText(selectedDate);
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
@@ -85,63 +81,63 @@ public class InputSewaActivity extends AppCompatActivity {
     }
 
     private void simpanData() {
-        // Ambil data dari inputan
-        String noKamar = tvNoKamar.getText().toString(); // Ambil dari TextView
+        String noKamar = tvNoKamar.getText().toString();
         String nama = etNama.getText().toString();
         String wa = etWa.getText().toString();
         String kerja = etPekerjaan.getText().toString();
         String tglIn = etTglIn.getText().toString();
         String tglOut = etTglOut.getText().toString();
-        String metode = etMetode.getText().toString();
-
-        // Ambil String Harga (yang ada titiknya)
         String strTotal = etTotal.getText().toString();
         String strBayar = etBayar.getText().toString();
+        String metode = etMetode.getText().toString();
 
-        // Validasi
-        if (nama.isEmpty() || noKamar.isEmpty() || strTotal.isEmpty() || tglIn.isEmpty()) {
-            Toast.makeText(this, "Mohon lengkapi data!", Toast.LENGTH_SHORT).show();
+        if (nama.isEmpty() || strTotal.isEmpty() || tglIn.isEmpty()) {
+            Toast.makeText(this, "Data wajib diisi!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Konversi Harga dari Format Titik ke Angka Murni (Double)
-        // Menggunakan helper parseCurrency dari CurrencyTextWatcher
+        // Ambil Email
+        String emailUser = sessionManager.getEmail();
+        if (emailUser == null) {
+            Toast.makeText(this, "Sesi habis, login ulang", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Bersihkan Format Uang
         double totalHarga = CurrencyTextWatcher.parseCurrency(strTotal);
         double uangBayar = CurrencyTextWatcher.parseCurrency(strBayar);
-
-        // Tentukan Status Lunas
         String statusLunas = (uangBayar >= totalHarga) ? "Lunas" : "Belum Lunas";
 
-        // Kirim ke Server via Retrofit
-        ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
-        Call<ResponseBody> call = apiService.simpanSewa(
-                noKamar, nama, wa, kerja, "Bulanan", totalHarga, statusLunas
-        );
+        ApiService api = RetrofitClient.getClient().create(ApiService.class);
 
-        call.enqueue(new Callback<ResponseBody>() {
+        // KIRIM DATA TERMASUK EMAIL
+        api.simpanSewa(
+                emailUser, // <--- Email dikirim di sini
+                noKamar, nama, wa, kerja, "Bulanan", totalHarga, statusLunas
+        ).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(InputSewaActivity.this, "Check-In Berhasil!", Toast.LENGTH_SHORT).show();
 
-                    // Pindah ke Halaman Kuitansi
+                    // Pindah ke Kuitansi
                     Intent intent = new Intent(InputSewaActivity.this, CetakKuitansiActivity.class);
                     intent.putExtra("NAMA", nama);
                     intent.putExtra("KAMAR", noKamar);
-                    intent.putExtra("PERIODE", tglIn + " s/d " + tglOut);
-                    intent.putExtra("HARGA", totalHarga); // Kirim angka murni (double)
-                    intent.putExtra("METODE", metode);
+                    intent.putExtra("PERIODE", tglIn + " s.d " + tglOut);
+                    intent.putExtra("HARGA", totalHarga);
                     intent.putExtra("STATUS", statusLunas);
+                    intent.putExtra("METODE", metode);
                     startActivity(intent);
-                    finish(); // Tutup halaman input
+                    finish();
                 } else {
-                    Toast.makeText(InputSewaActivity.this, "Gagal simpan di server", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(InputSewaActivity.this, "Gagal: Server Error " + response.code(), Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(InputSewaActivity.this, "Error Koneksi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(InputSewaActivity.this, "Koneksi Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

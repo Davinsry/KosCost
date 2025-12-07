@@ -47,6 +47,17 @@
             android:backgroundTint="#0D47A1"
             android:textColor="#FFF"
             android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:id="@+id/tv_daftar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Belum punya akun? Daftar disini"
+            android:textColor="#0D47A1"
+            android:textStyle="bold"
+            android:layout_gravity="center"
+            android:layout_marginTop="24dp"
+            android:padding="16dp"/>
     </LinearLayout>
 
     <LinearLayout

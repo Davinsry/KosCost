@@ -14,6 +14,7 @@ import com.example.koscost.MainActivity;
 import com.example.koscost.R;
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
+import com.example.koscost.utils.SessionManager;
 
 import org.json.JSONObject;
 import okhttp3.ResponseBody;
@@ -21,28 +22,25 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import com.example.koscost.utils.SessionManager;
-
 public class LoginActivity extends AppCompatActivity {
 
     LinearLayout layoutEmail, layoutOtp;
     EditText etEmail, etOtp;
     Button btnRequest, btnVerify;
-    TextView tvUlang;
-    String userEmail; // Simpan email sementara
+    TextView tvUlang, tvDaftar; // Variabel tombol daftar
+    String userEmail;
+
     SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // 1. Inisialisasi & Cek Sesi (Ditaruh PALING ATAS sebelum setContentView)
+
         sessionManager = new SessionManager(this);
         if (sessionManager.isLoggedIn()) {
-            // Kalau sudah login, langsung ke Dashboard
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(LoginActivity.this, MainActivity.class));
             finish();
-            return; // Stop kode di bawahnya
+            return;
         }
 
         setContentView(R.layout.activity_login);
@@ -55,6 +53,7 @@ public class LoginActivity extends AppCompatActivity {
         btnRequest = findViewById(R.id.btn_request_otp);
         btnVerify = findViewById(R.id.btn_verify_otp);
         tvUlang = findViewById(R.id.tv_ulang_email);
+        tvDaftar = findViewById(R.id.tv_daftar); // Binding
 
         // 1. Tombol Kirim OTP
         btnRequest.setOnClickListener(v -> {
@@ -81,10 +80,15 @@ public class LoginActivity extends AppCompatActivity {
             layoutOtp.setVisibility(View.GONE);
             layoutEmail.setVisibility(View.VISIBLE);
         });
+
+        // 4. Tombol Daftar (Pindah Halaman)
+        tvDaftar.setOnClickListener(v -> {
+            Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void requestOtp(String email) {
-        // Tampilkan loading (opsional)
         btnRequest.setEnabled(false);
         btnRequest.setText("Mengirim...");
 
@@ -95,13 +99,21 @@ public class LoginActivity extends AppCompatActivity {
                 btnRequest.setEnabled(true);
                 btnRequest.setText("Kirim Kode OTP");
 
-                if (response.isSuccessful()) {
-                    // Pindah Tampilan ke Input OTP
-                    Toast.makeText(LoginActivity.this, "OTP Terkirim ke Email!", Toast.LENGTH_SHORT).show();
-                    layoutEmail.setVisibility(View.GONE);
-                    layoutOtp.setVisibility(View.VISIBLE);
-                } else {
-                    Toast.makeText(LoginActivity.this, "Gagal kirim OTP", Toast.LENGTH_SHORT).show();
+                try {
+                    String res = response.body().string();
+                    JSONObject json = new JSONObject(res);
+
+                    if (json.getString("status").equals("sukses")) {
+                        Toast.makeText(LoginActivity.this, "OTP Terkirim ke Email!", Toast.LENGTH_SHORT).show();
+                        layoutEmail.setVisibility(View.GONE);
+                        layoutOtp.setVisibility(View.VISIBLE);
+                    } else {
+                        // Kalau email belum terdaftar, muncul pesan error dari PHP
+                        Toast.makeText(LoginActivity.this, json.getString("message"), Toast.LENGTH_LONG).show();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(LoginActivity.this, "Gagal koneksi", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -115,6 +127,12 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void verifyOtp(String email, String otp) {
+        // Cek email agar tidak null (Pencegahan)
+        if (email == null || email.isEmpty()) {
+            Toast.makeText(this, "Email tidak valid, silakan ulangi request OTP", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         ApiService api = RetrofitClient.getClient().create(ApiService.class);
         api.verifikasiOtp(email, otp).enqueue(new Callback<ResponseBody>() {
             @Override
@@ -122,32 +140,38 @@ public class LoginActivity extends AppCompatActivity {
                 try {
                     if (response.isSuccessful()) {
                         String res = response.body().string();
-                        JSONObject json = new JSONObject(res);
+                        JSONObject json = new JSONObject(res); // Bisa error parsing di sini
 
-                        if (json.getString("status").equals("sukses")) {
+                        if (json.optString("status").equals("sukses")) {
                             Toast.makeText(LoginActivity.this, "Login Berhasil!", Toast.LENGTH_SHORT).show();
 
-                            // --- TAMBAHKAN INI: Simpan Sesi ---
-                            String namaKos = json.optString("nama_kos", "KosCost"); // Default fallback
+                            // Simpan Sesi
+                            String namaKos = json.optString("nama_kos", "KosCost");
                             sessionManager.createLoginSession(email, namaKos);
-                            // ----------------------------------
 
-                            // Pindah ke Dashboard Utama
+                            // Pindah
                             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                             startActivity(intent);
                             finish();
                         } else {
-                            Toast.makeText(LoginActivity.this, "OTP Salah!", Toast.LENGTH_SHORT).show();
+                            // Tampilkan pesan gagal dari server (misal "OTP Salah")
+                            String msg = json.optString("message", "Verifikasi Gagal");
+                            Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_SHORT).show();
                         }
+                    } else {
+                        // INI YANG SEBELUMNYA HILANG: Menangani Error Server (500, 404, dll)
+                        Toast.makeText(LoginActivity.this, "Server Error: " + response.code(), Toast.LENGTH_SHORT).show();
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
+                    // Tampilkan jika ada error kodingan/parsing
+                    Toast.makeText(LoginActivity.this, "Terjadi Kesalahan: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(LoginActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(LoginActivity.this, "Koneksi Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
