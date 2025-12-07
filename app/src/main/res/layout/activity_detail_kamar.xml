@@ -1,70 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
+    android:padding="16dp">
 
-    <TextView
-        android:id="@+id/tv_judul_kamar"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Detail Kamar 101"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#0D47A1"
-        android:layout_marginBottom="24dp"/>
+        android:orientation="vertical">
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp">
-
-        <LinearLayout
+        <TextView
+            android:id="@+id/tv_judul_kamar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:text="Edit Data Penghuni"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#0D47A1"
+            android:layout_marginBottom="20dp"/>
 
-            <TextView
-                android:text="Penghuni Saat Ini:"
-                android:textStyle="bold"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp">
 
-            <TextView
-                android:id="@+id/tv_nama_penghuni"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Memuat..."
-                android:textSize="18sp"
-                android:layout_marginTop="4dp"
-                android:textColor="#000"/>
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView
-                android:id="@+id/tv_tgl_masuk"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Check In: -"/>
+                <TextView android:text="Nama Penghuni" android:textStyle="bold"/>
+                <EditText
+                    android:id="@+id/et_detail_nama"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName"/>
 
-            <TextView
-                android:id="@+id/tv_durasi"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Durasi: -"/>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+                <TextView android:text="Nomor WA" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                <EditText
+                    android:id="@+id/et_detail_wa"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="phone"/>
 
-    <Button
-        android:id="@+id/btn_checkout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="PROSES CHECK-OUT"
-        android:backgroundTint="#D32F2F"
-        android:textColor="#FFF"
-        android:textStyle="bold"
-        android:padding="14dp"/>
+                <TextView android:text="Pekerjaan" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                <EditText
+                    android:id="@+id/et_detail_kerja"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"/>
 
-</LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <TextView android:text="Check In" android:textStyle="bold"/>
+                        <EditText
+                            android:id="@+id/et_detail_tgl_in"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="date"
+                            android:focusable="false"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginLeft="8dp">
+                        <TextView android:text="Check Out" android:textStyle="bold"/>
+                        <EditText
+                            android:id="@+id/et_detail_tgl_out"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="date"
+                            android:focusable="false"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView android:text="Total Tagihan (Rp)" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                <EditText
+                    android:id="@+id/et_detail_total"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"/>
+
+                <TextView android:text="Sudah Dibayar (Rp)" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                <EditText
+                    android:id="@+id/et_detail_bayar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <Button
+            android:id="@+id/btn_update_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SIMPAN PERUBAHAN DATA"
+            android:backgroundTint="#00C853"
+            android:textColor="#FFF"
+            android:textStyle="bold"
+            android:padding="14dp"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btn_checkout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PROSES CHECK-OUT (KOSONGKAN)"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFF"
+            android:textStyle="bold"
+            android:padding="14dp"/>
+
+    </LinearLayout>
+</ScrollView>

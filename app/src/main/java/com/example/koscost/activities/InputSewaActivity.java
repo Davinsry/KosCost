@@ -79,6 +79,26 @@ public class InputSewaActivity extends AppCompatActivity {
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
         });
     }
+    private String hitungDurasiOtomatis(String tglMasuk, String tglKeluar) {
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+            java.util.Date dateIn = sdf.parse(tglMasuk);
+            java.util.Date dateOut = sdf.parse(tglKeluar);
+
+            long diff = dateOut.getTime() - dateIn.getTime();
+            long days = java.util.concurrent.TimeUnit.DAYS.convert(diff, java.util.concurrent.TimeUnit.MILLISECONDS);
+
+            if (days < 7) {
+                return "Harian (" + days + " Hari)";
+            } else if (days <= 13) {
+                return "Mingguan";
+            } else {
+                return "Bulanan";
+            }
+        } catch (Exception e) {
+            return "Bulanan"; // Default kalau error parsing
+        }
+    }
 
     private void simpanData() {
         String noKamar = tvNoKamar.getText().toString();
@@ -91,54 +111,51 @@ public class InputSewaActivity extends AppCompatActivity {
         String strBayar = etBayar.getText().toString();
         String metode = etMetode.getText().toString();
 
-        if (nama.isEmpty() || strTotal.isEmpty() || tglIn.isEmpty()) {
-            Toast.makeText(this, "Data wajib diisi!", Toast.LENGTH_SHORT).show();
+        if (nama.isEmpty() || strTotal.isEmpty() || tglIn.isEmpty() || tglOut.isEmpty()) {
+            Toast.makeText(this, "Data wajib diisi lengkap!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Ambil Email
         String emailUser = sessionManager.getEmail();
-        if (emailUser == null) {
-            Toast.makeText(this, "Sesi habis, login ulang", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (emailUser == null) return;
 
-        // Bersihkan Format Uang
         double totalHarga = CurrencyTextWatcher.parseCurrency(strTotal);
         double uangBayar = CurrencyTextWatcher.parseCurrency(strBayar);
         String statusLunas = (uangBayar >= totalHarga) ? "Lunas" : "Belum Lunas";
 
+        // --- HITUNG DURASI OTOMATIS DI SINI ---
+        String durasiOtomatis = hitungDurasiOtomatis(tglIn, tglOut);
+
         ApiService api = RetrofitClient.getClient().create(ApiService.class);
 
-        // KIRIM DATA TERMASUK EMAIL
         api.simpanSewa(
-                emailUser, // <--- Email dikirim di sini
-                noKamar, nama, wa, kerja, "Bulanan", totalHarga, statusLunas
+                emailUser,
+                noKamar, nama, wa, kerja,
+                durasiOtomatis, // Pakai hasil hitungan
+                totalHarga, statusLunas
         ).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(InputSewaActivity.this, "Check-In Berhasil!", Toast.LENGTH_SHORT).show();
-
-                    // Pindah ke Kuitansi
                     Intent intent = new Intent(InputSewaActivity.this, CetakKuitansiActivity.class);
                     intent.putExtra("NAMA", nama);
                     intent.putExtra("KAMAR", noKamar);
-                    intent.putExtra("PERIODE", tglIn + " s.d " + tglOut);
+                    intent.putExtra("PERIODE", tglIn + " s.d " + tglOut + " (" + durasiOtomatis + ")");
                     intent.putExtra("HARGA", totalHarga);
                     intent.putExtra("STATUS", statusLunas);
                     intent.putExtra("METODE", metode);
                     startActivity(intent);
                     finish();
                 } else {
-                    Toast.makeText(InputSewaActivity.this, "Gagal: Server Error " + response.code(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(InputSewaActivity.this, "Gagal Server", Toast.LENGTH_SHORT).show();
                 }
             }
-
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(InputSewaActivity.this, "Koneksi Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(InputSewaActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
+
 }

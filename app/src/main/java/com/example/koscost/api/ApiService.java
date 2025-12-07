@@ -97,4 +97,19 @@ public interface ApiService {
             @Field("email") String email,
             @Field("nama_kos") String namaKos
     );
+    // --- 12. UPDATE DATA SEWA (Edit Penghuni) ---
+    @FormUrlEncoded
+    @POST("update_sewa.php")
+    Call<ResponseBody> updateSewa(
+            @Field("id_sewa") String idSewa,
+            @Field("nama_penghuni") String nama,
+            @Field("no_wa") String noWa,
+            @Field("pekerjaan") String pekerjaan,
+            @Field("tgl_checkin") String tglIn,
+            @Field("tgl_checkout") String tglOut,
+            @Field("durasi_sewa") String durasi,
+            @Field("total_harga") double total,
+            @Field("sudah_dibayar") double bayar,
+            @Field("status_bayar") String status
+    );
 }
