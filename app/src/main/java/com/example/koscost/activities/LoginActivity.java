@@ -128,7 +128,8 @@ public class LoginActivity extends AppCompatActivity {
                             Toast.makeText(LoginActivity.this, "Login Berhasil!", Toast.LENGTH_SHORT).show();
 
                             // --- TAMBAHKAN INI: Simpan Sesi ---
-                            sessionManager.createLoginSession(email);
+                            String namaKos = json.optString("nama_kos", "KosCost"); // Default fallback
+                            sessionManager.createLoginSession(email, namaKos);
                             // ----------------------------------
 
                             // Pindah ke Dashboard Utama

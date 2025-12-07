@@ -1,16 +1,15 @@
 package com.example.koscost.activities;
 
-import android.database.Cursor;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
 import android.os.Environment;
 import android.util.DisplayMetrics;
@@ -21,31 +20,25 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-// Import Database Helper
-import com.example.koscost.database.DatabaseHelper;
+// Import Session Manager
+import com.example.koscost.utils.SessionManager;
 import com.example.koscost.R;
 
 public class CetakKuitansiActivity extends AppCompatActivity {
 
-    // 1. DEKLARASI SEMUA VARIABEL DI SINI
-    private DatabaseHelper dbHelper;
-    private int idSewa;
-
     // Variabel untuk Tampilan Data
-    private TextView tvNama, tvNoKamar, tvPeriode, tvJumlah, tvMetode, tvStatus, tvTglCetak;
+    private TextView tvNama, tvNoKamar, tvPeriode, tvJumlah, tvMetode, tvStatus, tvTglCetak, tvNamaKostTTD;
 
     // Variabel untuk PDF
     private CardView cvKuitansi;
     private Button btnCetakPdf;
-
-    // ... import dan variabel sama
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cetak_kuitansi);
 
-        // Binding ID
+        // 1. Binding ID (Sambungkan dengan XML)
         tvNama = findViewById(R.id.tv_nama);
         tvNoKamar = findViewById(R.id.tv_no_kamar);
         tvPeriode = findViewById(R.id.tv_periode);
@@ -53,29 +46,40 @@ public class CetakKuitansiActivity extends AppCompatActivity {
         tvMetode = findViewById(R.id.tv_metode);
         tvStatus = findViewById(R.id.tv_status);
         tvTglCetak = findViewById(R.id.tv_tanggal_cetak);
+        tvNamaKostTTD = findViewById(R.id.tv_nama_kost_ttd); // ID Baru untuk Nama Kos di bawah
         cvKuitansi = findViewById(R.id.cv_kuitansi);
         btnCetakPdf = findViewById(R.id.btn_cetak_pdf);
 
-        // --- UBAH BAGIAN INI ---
-        // Tangkap Data "Lemparan" dari InputSewaActivity
+        // 2. Tangkap Data "Lemparan" dari InputSewaActivity
         String nama = getIntent().getStringExtra("NAMA");
         String kamar = getIntent().getStringExtra("KAMAR");
+        String periode = getIntent().getStringExtra("PERIODE"); // Tangkap Periode
         double harga = getIntent().getDoubleExtra("HARGA", 0);
         String status = getIntent().getStringExtra("STATUS");
+        String metode = getIntent().getStringExtra("METODE"); // Tangkap Metode
 
         if (nama != null) {
-            // Tampilkan langsung tanpa query database!
+            // Tampilkan Data ke Layar
             tvNama.setText(nama);
             tvNoKamar.setText(kamar);
             tvJumlah.setText(formatRupiah(harga));
             tvStatus.setText(status);
-            tvPeriode.setText("Bulan Ini"); // Bisa disesuaikan
-            tvMetode.setText("Transfer");
+            tvMetode.setText(metode != null ? metode : "Transfer");
+            tvPeriode.setText(periode != null ? periode : "-");
 
-            // Set Tanggal Cetak Otomatis
-            tvTglCetak.setText("Dicetak: " + new java.util.Date().toString());
+            // --- LOGIKA BARU: TANGGAL & NAMA KOS ---
+
+            // A. Ambil Nama Kos dari Session
+            SessionManager sessionManager = new SessionManager(this);
+            String namaKos = sessionManager.getNamaKos();
+            tvNamaKostTTD.setText(namaKos);
+
+            // B. Set Tanggal Cetak (Format: 07 Dec 2025)
+            SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy", Locale.US);
+            String tglSekarang = sdf.format(new Date());
+            tvTglCetak.setText(tglSekarang);
+
         } else {
-            // Fallback kalau data kosong (misal dibuka manual)
             Toast.makeText(this, "Tidak ada data kuitansi baru", Toast.LENGTH_SHORT).show();
         }
 
@@ -83,46 +87,14 @@ public class CetakKuitansiActivity extends AppCompatActivity {
         btnCetakPdf.setOnClickListener(v -> cetakPdf());
     }
 
-    // ... (method formatRupiah dan cetakPdf biarkan saja, tidak perlu diubah)
-
-    // --- METHOD UNTUK MENAMPILKAN DATA ---
-    private void tampilkanDataKuitansi(int id) {
-        Cursor cursor = dbHelper.getDataKuitansi(id);
-
-        if (cursor != null && cursor.moveToFirst()) {
-            // Pastikan nama kolom di bawah ini SAMA PERSIS dengan di DatabaseHelper
-            String nama = cursor.getString(cursor.getColumnIndexOrThrow("nama_penghuni"));
-            String noKamar = cursor.getString(cursor.getColumnIndexOrThrow("no_kamar"));
-            String tglIn = cursor.getString(cursor.getColumnIndexOrThrow("tgl_checkin"));
-            String tglOut = cursor.getString(cursor.getColumnIndexOrThrow("tgl_checkout"));
-            double totalBayar = cursor.getDouble(cursor.getColumnIndexOrThrow("total_tarif"));
-            String metode = cursor.getString(cursor.getColumnIndexOrThrow("metode_bayar"));
-            String status = cursor.getString(cursor.getColumnIndexOrThrow("status_lunas"));
-
-            tvNama.setText(nama);
-            tvNoKamar.setText(noKamar);
-            tvPeriode.setText(tglIn + " s.d " + tglOut);
-            tvMetode.setText(metode);
-            tvStatus.setText(status);
-            tvJumlah.setText(formatRupiah(totalBayar));
-
-            // Tips: Gunakan tanggal hari ini yang dinamis jika mau
-            tvTglCetak.setText("Dicetak pada: " + java.text.DateFormat.getDateInstance().format(new java.util.Date()));
-
-            cursor.close();
-        } else {
-            Toast.makeText(this, "Gagal memuat data", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    // --- METHOD UNTUK FORMAT RUPIAH ---
+    // Helper Format Rupiah
     private String formatRupiah(double number) {
         Locale localeID = new Locale("in", "ID");
         NumberFormat formatRupiah = NumberFormat.getCurrencyInstance(localeID);
         return formatRupiah.format(number);
     }
 
-    // --- METHOD UNTUK MEMBUAT PDF ---
+    // Fungsi Cetak PDF
     private void cetakPdf() {
         // A. Ukur dimensi CardView
         DisplayMetrics displayMetrics = new DisplayMetrics();
@@ -141,7 +113,6 @@ public class CetakKuitansiActivity extends AppCompatActivity {
         int viewWidth = cvKuitansi.getMeasuredWidth();
         int viewHeight = cvKuitansi.getMeasuredHeight();
 
-        // Cek agar tidak error jika ukuran 0
         if(viewWidth == 0 || viewHeight == 0) {
             Toast.makeText(this, "Gagal mengukur Layout, coba lagi.", Toast.LENGTH_SHORT).show();
             return;
@@ -161,11 +132,11 @@ public class CetakKuitansiActivity extends AppCompatActivity {
         pdfDocument.finishPage(page);
 
         // D. Simpan File
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Kuitansi_Kost_" + System.currentTimeMillis() + ".pdf");
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Kuitansi_" + System.currentTimeMillis() + ".pdf");
 
         try {
             pdfDocument.writeTo(new FileOutputStream(file));
-            Toast.makeText(this, "PDF Berhasil Disimpan di Folder Download!", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "PDF Tersimpan di Download!", Toast.LENGTH_LONG).show();
         } catch (IOException e) {
             e.printStackTrace();
             Toast.makeText(this, "Gagal simpan PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();

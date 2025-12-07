@@ -185,7 +185,6 @@
                             android:id="@+id/tv_nama_kost_ttd"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="PandawaX45 Jogja"
                             android:textColor="#333333"
                             android:layout_marginBottom="30dp"/>
 
@@ -200,7 +199,6 @@
                     android:background="#BDBDBD"
                     android:padding="8dp"
                     android:gravity="center"
-                    android:text="IG @pandawaX45 | WA 0851 7688 0101"
                     android:textColor="#000000"
                     android:textSize="12sp"/>
 

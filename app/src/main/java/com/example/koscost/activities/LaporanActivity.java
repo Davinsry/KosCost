@@ -6,13 +6,16 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.koscost.R;
 import com.example.koscost.adapter.RiwayatAdapter;
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
 import com.example.koscost.model.Transaksi;
+import com.example.koscost.utils.SessionManager; // <--- JANGAN LUPA IMPORT INI
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
 import org.json.JSONObject;
 import java.lang.reflect.Type;
 import java.text.NumberFormat;
@@ -27,11 +30,14 @@ public class LaporanActivity extends AppCompatActivity {
 
     TextView tvBulan, tvOmzet;
     RecyclerView rvRiwayat;
+    SessionManager sessionManager; // 1. Tambah variabel ini
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_laporan);
+
+        sessionManager = new SessionManager(this); // 2. Inisialisasi Session
 
         tvBulan = findViewById(R.id.tv_bulan_laporan);
         tvOmzet = findViewById(R.id.tv_omzet_total);
@@ -42,8 +48,13 @@ public class LaporanActivity extends AppCompatActivity {
     }
 
     private void loadData() {
+        // 3. Ambil Email dari Sesi Login
+        String emailUser = sessionManager.getEmail();
+
         ApiService api = RetrofitClient.getClient().create(ApiService.class);
-        api.getLaporanKeuangan().enqueue(new Callback<ResponseBody>() {
+
+        // 4. Masukkan email ke dalam kurung (Solusi Error tadi)
+        api.getLaporanKeuangan(emailUser).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 try {
@@ -51,7 +62,12 @@ public class LaporanActivity extends AppCompatActivity {
                         String res = response.body().string();
                         JSONObject json = new JSONObject(res);
 
-                        // 1. Set Header
+                        if (json.has("status") && json.getString("status").equals("gagal")) {
+                            Toast.makeText(LaporanActivity.this, json.getString("message"), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        // Set Header
                         String bulan = json.getString("bulan");
                         double omzet = json.getDouble("omzet");
 
@@ -59,14 +75,17 @@ public class LaporanActivity extends AppCompatActivity {
                         NumberFormat rp = NumberFormat.getCurrencyInstance(new Locale("in", "ID"));
                         tvOmzet.setText(rp.format(omzet));
 
-                        // 2. Set List
+                        // Set List
                         String jsonArray = json.getJSONArray("riwayat").toString();
                         Type listType = new TypeToken<List<Transaksi>>(){}.getType();
                         List<Transaksi> dataList = new Gson().fromJson(jsonArray, listType);
 
                         rvRiwayat.setAdapter(new RiwayatAdapter(dataList));
                     }
-                } catch (Exception e) { e.printStackTrace(); }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(LaporanActivity.this, "Error Parsing: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {

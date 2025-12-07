@@ -22,6 +22,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import com.example.koscost.api.ApiService;
+
 public class MainActivity extends AppCompatActivity {
 
     private RecyclerView rvKamar;
@@ -73,8 +75,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadDataKamar() {
+        // 1. Ambil email user yang sedang login dari Session
+        String emailUser = sessionManager.getEmail();
+
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
-        Call<List<Kamar>> call = apiService.getDaftarKamar();
+
+        // 2. Kirim email ke server (Update di sini: tambahkan parameter emailUser)
+        Call<List<Kamar>> call = apiService.getDaftarKamar(emailUser);
 
         call.enqueue(new Callback<List<Kamar>>() {
             @Override

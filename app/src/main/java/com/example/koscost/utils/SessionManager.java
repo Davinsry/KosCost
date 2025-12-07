@@ -9,30 +9,34 @@ public class SessionManager {
     private static final String PREF_NAME = "KosCostSession";
     private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     private static final String KEY_EMAIL = "email";
+    private static final String KEY_NAMA_KOS = "nama_kos"; // <--- TAMBAH INI
 
     public SessionManager(Context context) {
         sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
     }
 
-    // Fungsi untuk membuat sesi login
-    public void createLoginSession(String email) {
+    // Update fungsi Login: Terima namaKos juga
+    public void createLoginSession(String email, String namaKos) {
         editor.putBoolean(KEY_IS_LOGGED_IN, true);
         editor.putString(KEY_EMAIL, email);
-        editor.commit(); // Simpan perubahan
+        editor.putString(KEY_NAMA_KOS, namaKos); // Simpan Nama Kos
+        editor.commit();
     }
 
-    // Cek apakah user sudah login?
     public boolean isLoggedIn() {
         return sharedPreferences.getBoolean(KEY_IS_LOGGED_IN, false);
     }
 
-    // Ambil email yang sedang login
     public String getEmail() {
         return sharedPreferences.getString(KEY_EMAIL, null);
     }
 
-    // Fungsi Logout (Hapus Data)
+    // Fungsi Ambil Nama Kos (Untuk Kuitansi)
+    public String getNamaKos() {
+        return sharedPreferences.getString(KEY_NAMA_KOS, "Nama Kos Belum Diatur");
+    }
+
     public void logoutUser() {
         editor.clear();
         editor.commit();

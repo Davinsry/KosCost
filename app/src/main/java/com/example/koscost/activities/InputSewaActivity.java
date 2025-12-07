@@ -1,43 +1,48 @@
-package com.example.koscost.activities; // Sesuaikan jika nama package beda
+package com.example.koscost.activities;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.koscost.R;
-import com.example.koscost.database.DatabaseHelper;
-
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
+import com.example.koscost.utils.CurrencyTextWatcher; // Pastikan class ini sudah dibuat
+
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+import java.util.Calendar;
+import java.util.Locale;
+
 public class InputSewaActivity extends AppCompatActivity {
 
-    // 1. Deklarasi Variabel
-    EditText etNama, etWa, etPekerjaan, etNoKamar, etTglIn, etTglOut, etTotal, etBayar, etMetode;
+    // 1. Deklarasi Variabel (Sudah dirapikan)
+    EditText etNama, etWa, etPekerjaan, etTglIn, etTglOut, etTotal, etBayar, etMetode;
+    TextView tvNoKamar; // Pakai TextView karena tidak bisa diedit
     Button btnSimpan;
-    DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_input_sewa);
 
-        // 2. Inisialisasi Database
-        dbHelper = new DatabaseHelper(this);
-
-        // 3. Binding (Sambungkan variabel dengan ID di XML)
+        // 2. Binding (Sambungkan variabel dengan ID di XML)
         etNama = findViewById(R.id.et_nama_penghuni);
         etWa = findViewById(R.id.et_nomor_wa);
         etPekerjaan = findViewById(R.id.et_pekerjaan);
-        etNoKamar = findViewById(R.id.et_nomor_kamar);
+
+        // Pastikan di XML ID-nya benar. Walaupun TextView, ID-nya bisa tetap et_nomor_kamar
+        tvNoKamar = findViewById(R.id.et_nomor_kamar);
+
         etTglIn = findViewById(R.id.et_tgl_checkin);
         etTglOut = findViewById(R.id.et_tgl_checkout);
         etTotal = findViewById(R.id.et_total_harga);
@@ -45,33 +50,69 @@ public class InputSewaActivity extends AppCompatActivity {
         etMetode = findViewById(R.id.et_metode_bayar);
         btnSimpan = findViewById(R.id.btn_simpan);
 
-        // 4. Aksi saat Tombol Simpan Ditekan
-        btnSimpan.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                simpanData();
-            }
+        // 3. Ambil Nomor Kamar dari Intent (Dashboard)
+        String noKamar = getIntent().getStringExtra("NO_KAMAR");
+        if (noKamar != null) {
+            tvNoKamar.setText(noKamar);
+        }
+
+        // 4. Pasang Format Uang (Agar ada titiknya, misal 1.500.000)
+        etTotal.addTextChangedListener(new CurrencyTextWatcher(etTotal));
+        etBayar.addTextChangedListener(new CurrencyTextWatcher(etBayar));
+
+        // 5. Pasang Kalendar (Date Picker)
+        setupDatePicker(etTglIn);
+        setupDatePicker(etTglOut);
+
+        // 6. Aksi Tombol Simpan
+        btnSimpan.setOnClickListener(v -> simpanData());
+    }
+
+    // Fungsi untuk menampilkan Kalendar saat diklik
+    private void setupDatePicker(EditText editText) {
+        editText.setFocusable(false); // Biar keyboard tidak muncul
+        editText.setClickable(true);
+        editText.setOnClickListener(v -> {
+            Calendar c = Calendar.getInstance();
+            new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+                // Format tanggal untuk Database (YYYY-MM-DD)
+                // String formatDB = String.format(Locale.US, "%d-%02d-%02d", year, month + 1, dayOfMonth);
+                // Kita tampilkan langsung format DB di EditText biar gampang
+                String selectedDate = String.format(Locale.US, "%d-%02d-%02d", year, month + 1, dayOfMonth);
+                editText.setText(selectedDate);
+            }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
         });
     }
 
     private void simpanData() {
-        // 1. Ambil data string seperti biasa
+        // Ambil data dari inputan
+        String noKamar = tvNoKamar.getText().toString(); // Ambil dari TextView
         String nama = etNama.getText().toString();
         String wa = etWa.getText().toString();
         String kerja = etPekerjaan.getText().toString();
-        String noKamar = etNoKamar.getText().toString();
-        // ... (ambil data lainnya seperti tgl dll, sesuaikan variabelmu)
-        String strTotal = etTotal.getText().toString();
+        String tglIn = etTglIn.getText().toString();
+        String tglOut = etTglOut.getText().toString();
+        String metode = etMetode.getText().toString();
 
-        if (nama.isEmpty() || noKamar.isEmpty()) {
-            Toast.makeText(this, "Data tidak boleh kosong", Toast.LENGTH_SHORT).show();
+        // Ambil String Harga (yang ada titiknya)
+        String strTotal = etTotal.getText().toString();
+        String strBayar = etBayar.getText().toString();
+
+        // Validasi
+        if (nama.isEmpty() || noKamar.isEmpty() || strTotal.isEmpty() || tglIn.isEmpty()) {
+            Toast.makeText(this, "Mohon lengkapi data!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        double totalHarga = Double.parseDouble(strTotal);
-        String statusLunas = "Lunas"; // Logika sederhana dulu
+        // Konversi Harga dari Format Titik ke Angka Murni (Double)
+        // Menggunakan helper parseCurrency dari CurrencyTextWatcher
+        double totalHarga = CurrencyTextWatcher.parseCurrency(strTotal);
+        double uangBayar = CurrencyTextWatcher.parseCurrency(strBayar);
 
-        // 2. KIRIM KE VPS PAKAI RETROFIT
+        // Tentukan Status Lunas
+        String statusLunas = (uangBayar >= totalHarga) ? "Lunas" : "Belum Lunas";
+
+        // Kirim ke Server via Retrofit
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
         Call<ResponseBody> call = apiService.simpanSewa(
                 noKamar, nama, wa, kerja, "Bulanan", totalHarga, statusLunas
@@ -81,20 +122,20 @@ public class InputSewaActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
-                    Toast.makeText(InputSewaActivity.this, "Berhasil Disimpan di Server!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(InputSewaActivity.this, "Check-In Berhasil!", Toast.LENGTH_SHORT).show();
 
-                    // 3. PINDAH KE KUITANSI (BAWA DATA LANGSUNG)
-                    // Kita "lempar" data yang barusan diketik ke halaman sebelah
+                    // Pindah ke Halaman Kuitansi
                     Intent intent = new Intent(InputSewaActivity.this, CetakKuitansiActivity.class);
                     intent.putExtra("NAMA", nama);
                     intent.putExtra("KAMAR", noKamar);
-                    intent.putExtra("HARGA", totalHarga);
+                    intent.putExtra("PERIODE", tglIn + " s/d " + tglOut);
+                    intent.putExtra("HARGA", totalHarga); // Kirim angka murni (double)
+                    intent.putExtra("METODE", metode);
                     intent.putExtra("STATUS", statusLunas);
-                    intent.putExtra("TGL", "Hari Ini"); // Atau ambil dari EditText
                     startActivity(intent);
-                    finish();
+                    finish(); // Tutup halaman input
                 } else {
-                    Toast.makeText(InputSewaActivity.this, "Gagal respon server", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(InputSewaActivity.this, "Gagal simpan di server", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -104,5 +145,4 @@ public class InputSewaActivity extends AppCompatActivity {
             }
         });
     }
-
 }
