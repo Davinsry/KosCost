@@ -112,4 +112,11 @@ public interface ApiService {
             @Field("sudah_dibayar") double bayar,
             @Field("status_bayar") String status
     );
+    @FormUrlEncoded
+    @POST("update_profile.php")
+    Call<ResponseBody> updateProfile(
+            @Field("email_lama") String emailLama,
+            @Field("email_baru") String emailBaru,
+            @Field("nama_kos") String namaKos
+    );
 }

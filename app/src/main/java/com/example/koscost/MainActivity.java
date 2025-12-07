@@ -22,6 +22,8 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+private DatabaseHelper dbHelper;
+
 import com.example.koscost.api.ApiService;
 
 public class MainActivity extends AppCompatActivity {
@@ -34,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        dbHelper = new DatabaseHelper(this);
 
         sessionManager = new SessionManager(this);
 
@@ -75,29 +79,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadDataKamar() {
-        // 1. Ambil email user yang sedang login dari Session
         String emailUser = sessionManager.getEmail();
-
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
-        // 2. Kirim email ke server (Update di sini: tambahkan parameter emailUser)
-        Call<List<Kamar>> call = apiService.getDaftarKamar(emailUser);
-
-        call.enqueue(new Callback<List<Kamar>>() {
+        apiService.getDaftarKamar(emailUser).enqueue(new Callback<List<Kamar>>() {
             @Override
             public void onResponse(Call<List<Kamar>> call, Response<List<Kamar>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    List<Kamar> listKamar = response.body();
-                    adapter = new KamarAdapter(MainActivity.this, listKamar);
+                    List<Kamar> list = response.body();
+
+                    // 1. Tampilkan Data
+                    adapter = new KamarAdapter(MainActivity.this, list);
                     rvKamar.setAdapter(adapter);
-                } else {
-                    Toast.makeText(MainActivity.this, "Gagal memuat data", Toast.LENGTH_SHORT).show();
+
+                    // 2. SIMPAN KE LOKAL (UNTUK OFFLINE NANTI)
+                    dbHelper.simpanKamarOffline(list);
                 }
             }
 
             @Override
             public void onFailure(Call<List<Kamar>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                // 3. JIKA INTERNET MATI / ERROR -> AMBIL DARI LOKAL
+                Toast.makeText(MainActivity.this, "Mode Offline: Menampilkan data terakhir", Toast.LENGTH_LONG).show();
+
+                List<Kamar> offlineList = dbHelper.getKamarOffline();
+                adapter = new KamarAdapter(MainActivity.this, offlineList);
+                rvKamar.setAdapter(adapter);
             }
         });
     }

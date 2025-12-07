@@ -5,6 +5,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import com.example.koscost.model.Kamar;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -57,6 +60,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_HARGA_DASAR + " REAL, " +
                 COL_STATUS_KAMAR + " INTEGER DEFAULT 0)"; // Default 0 (Kosong)
         db.execSQL(createTableKamar);
+
+        db.execSQL("CREATE TABLE tb_kamar_lokal (id_kamar INTEGER PRIMARY KEY, no_kamar TEXT, status TEXT, fasilitas TEXT, harga_bulanan DOUBLE)");
 
         // 2. Buat Tabel Sewa (Menyimpan data penghuni & pembayaran)
         String createTableSewa = "CREATE TABLE " + TABLE_SEWA + " (" +
@@ -151,6 +156,49 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         cursor.close();
         return lastId;
+    }
+
+    // --- METHOD BARU: SIMPAN CACHE ---
+    public void simpanKamarOffline(List<Kamar> listKamar) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("DELETE FROM tb_kamar_lokal"); // Hapus data lama (Refresh)
+
+        db.beginTransaction();
+        try {
+            for (Kamar k : listKamar) {
+                ContentValues values = new ContentValues();
+                values.put("id_kamar", k.getIdKamar());
+                values.put("no_kamar", k.getNoKamar());
+                values.put("status", k.getStatus());
+                values.put("fasilitas", k.getFasilitas());
+                values.put("harga_bulanan", k.getHargaBulanan());
+                db.insert("tb_kamar_lokal", null, values);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    // --- METHOD BARU: AMBIL CACHE ---
+    public List<Kamar> getKamarOffline() {
+        List<Kamar> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT * FROM tb_kamar_lokal ORDER BY no_kamar ASC", null);
+
+        if (c.moveToFirst()) {
+            do {
+                Kamar k = new Kamar();
+                k.setIdKamar(c.getString(c.getColumnIndexOrThrow("id_kamar")));
+                k.setNoKamar(c.getString(c.getColumnIndexOrThrow("no_kamar")));
+                k.setStatus(c.getString(c.getColumnIndexOrThrow("status")));
+                k.setFasilitas(c.getString(c.getColumnIndexOrThrow("fasilitas")));
+                k.setHargaBulanan(c.getDouble(c.getColumnIndexOrThrow("harga_bulanan")));
+                list.add(k);
+            } while (c.moveToNext());
+        }
+        c.close();
+        return list;
     }
 }
 
