@@ -6,6 +6,8 @@ import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.Query;
+
 import java.util.List;
 import com.example.koscost.model.Kamar;
 
@@ -45,4 +47,43 @@ public interface ApiService {
             @Field("email") String email,
             @Field("otp_code") String otpCode
     );
+    // --- 5. AMBIL DETAIL PENGHUNI (Buat menu Check-Out) ---
+    @GET("get_detail_sewa.php")
+    Call<ResponseBody> getDetailSewa(@Query("no_kamar") String noKamar);
+
+    // --- 6. PROSES CHECK-OUT ---
+    @FormUrlEncoded
+    @POST("checkout.php")
+    Call<ResponseBody> prosesCheckout(@Field("no_kamar") String noKamar);
+
+    // --- 7. TAMBAH KAMAR BARU ---
+    @FormUrlEncoded
+    @POST("tambah_kamar.php")
+    Call<ResponseBody> tambahKamar(
+            @Field("no_kamar") String noKamar,
+            @Field("fasilitas") String fasilitas,
+            @Field("harga_harian") double harian,
+            @Field("harga_mingguan") double mingguan,
+            @Field("harga_bulanan") double bulanan
+    );
+
+    // --- 8. EDIT KAMAR ---
+    @FormUrlEncoded
+    @POST("edit_kamar.php")
+    Call<ResponseBody> editKamar(
+            @Field("id_kamar") String idKamar,
+            @Field("no_kamar") String noKamar,
+            @Field("fasilitas") String fasilitas,
+            @Field("harga_harian") double harian,
+            @Field("harga_mingguan") double mingguan,
+            @Field("harga_bulanan") double bulanan
+    );
+
+    // --- 9. HAPUS KAMAR ---
+    @FormUrlEncoded
+    @POST("hapus_kamar.php")
+    Call<ResponseBody> hapusKamar(@Field("id_kamar") String idKamar);
+    // --- 10. FITUR LAPORAN ---
+    @GET("get_laporan.php")
+    Call<ResponseBody> getLaporanKeuangan();
 }

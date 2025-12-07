@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#F5F5F5">
+
+    <TextView
+        android:id="@+id/tv_judul_kamar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Detail Kamar 101"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#0D47A1"
+        android:layout_marginBottom="24dp"/>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:text="Penghuni Saat Ini:"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/tv_nama_penghuni"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Memuat..."
+                android:textSize="18sp"
+                android:layout_marginTop="4dp"
+                android:textColor="#000"/>
+
+            <TextView
+                android:id="@+id/tv_tgl_masuk"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Check In: -"/>
+
+            <TextView
+                android:id="@+id/tv_durasi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Durasi: -"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <Button
+        android:id="@+id/btn_checkout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PROSES CHECK-OUT"
+        android:backgroundTint="#D32F2F"
+        android:textColor="#FFF"
+        android:textStyle="bold"
+        android:padding="14dp"/>
+
+</LinearLayout>

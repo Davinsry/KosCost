@@ -11,6 +11,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.koscost.R;
 import com.example.koscost.database.DatabaseHelper;
 
+import com.example.koscost.api.ApiService;
+import com.example.koscost.api.RetrofitClient;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class InputSewaActivity extends AppCompatActivity {
 
     // 1. Deklarasi Variabel
@@ -48,94 +55,54 @@ public class InputSewaActivity extends AppCompatActivity {
     }
 
     private void simpanData() {
-        // A. Ambil teks dari inputan
+        // 1. Ambil data string seperti biasa
         String nama = etNama.getText().toString();
         String wa = etWa.getText().toString();
         String kerja = etPekerjaan.getText().toString();
         String noKamar = etNoKamar.getText().toString();
-        String tglIn = etTglIn.getText().toString();
-        String tglOut = etTglOut.getText().toString();
+        // ... (ambil data lainnya seperti tgl dll, sesuaikan variabelmu)
         String strTotal = etTotal.getText().toString();
-        String strBayar = etBayar.getText().toString();
-        String metode = etMetode.getText().toString();
 
-        // B. Validasi (Cek biar gak kosong)
-        if (nama.isEmpty() || noKamar.isEmpty() || strTotal.isEmpty()) {
-            Toast.makeText(this, "Mohon lengkapi data wajib (Nama, Kamar, Harga)!", Toast.LENGTH_SHORT).show();
+        if (nama.isEmpty() || noKamar.isEmpty()) {
+            Toast.makeText(this, "Data tidak boleh kosong", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // C. Konversi Harga ke Angka (Double)
         double totalHarga = Double.parseDouble(strTotal);
-        double uangBayar = Double.parseDouble(strBayar);
+        String statusLunas = "Lunas"; // Logika sederhana dulu
 
-        // D. Tentukan Status Lunas/Belum
-        String statusLunas;
-        if (uangBayar >= totalHarga) {
-            statusLunas = "Lunas";
-        } else {
-            statusLunas = "Belum Lunas";
-        }
-
-        // --- LOGIKA DATABASE ---
-        // Karena ini prototype TA, kita buat simpel:
-        // 1. Kita anggap setiap input kamar baru itu membuat data kamar baru juga di database master
-        // Agar kita dapat ID Kamarnya.
-
-        dbHelper.addKamar(noKamar, "Standar", totalHarga);
-        // (Di aplikasi nyata, harusnya cek dulu kamarnya sudah ada atau belum, tapi ini shortcut biar cepat)
-
-        // 2. Karena SQLite autoincrement, kita perlu ID kamar terakhir yang barusan dibuat.
-        // Tapi untuk simplifikasi TA, kita bisa tembak ID manual atau ambil query terakhir.
-        // SEMENTARA: Kita pakai ID dummy atau logika pencarian sederhana.
-        // (Agar tidak error, kita asumsi ID Kamar = 1 atau kita query dulu.
-        // TAPI, biar gampang di tahap ini, kita masukkan ID Kamar = Integer dari No Kamar (misal kamar 203 -> id 203)
-
-        int idKamarInt = 0;
-        try {
-            idKamarInt = Integer.parseInt(noKamar);
-        } catch (NumberFormatException e) {
-            idKamarInt = 1; // Default kalau user masukin "Kamar Mawar"
-        }
-
-        // 3. Simpan ke Tabel Sewa (Check-In)
-        boolean isSuccess = dbHelper.prosesCheckIn(
-                idKamarInt, // ID Kamar
-                nama,
-                wa,
-                "-", // KTP (skip dulu)
-                kerja,
-                tglIn,
-                tglOut,
-                "Bulanan", // Tipe Sewa default
-                totalHarga,
-                uangBayar,
-                metode,
-                statusLunas
+        // 2. KIRIM KE VPS PAKAI RETROFIT
+        ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
+        Call<ResponseBody> call = apiService.simpanSewa(
+                noKamar, nama, wa, kerja, "Bulanan", totalHarga, statusLunas
         );
 
-        if (isSuccess) {
-            Toast.makeText(this, "Check-In Berhasil!", Toast.LENGTH_SHORT).show();
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(InputSewaActivity.this, "Berhasil Disimpan di Server!", Toast.LENGTH_SHORT).show();
 
-            // --- NAVIGATION ---
-            // Pindah ke Halaman Kuitansi sambil bawa ID Sewanya
-            // Tapi tunggu, method prosesCheckIn kita cuma return True/False, tidak return ID Sewa.
-            // Biar gampang, kita query ambil ID terakhir dari tabel sewa.
+                    // 3. PINDAH KE KUITANSI (BAWA DATA LANGSUNG)
+                    // Kita "lempar" data yang barusan diketik ke halaman sebelah
+                    Intent intent = new Intent(InputSewaActivity.this, CetakKuitansiActivity.class);
+                    intent.putExtra("NAMA", nama);
+                    intent.putExtra("KAMAR", noKamar);
+                    intent.putExtra("HARGA", totalHarga);
+                    intent.putExtra("STATUS", statusLunas);
+                    intent.putExtra("TGL", "Hari Ini"); // Atau ambil dari EditText
+                    startActivity(intent);
+                    finish();
+                } else {
+                    Toast.makeText(InputSewaActivity.this, "Gagal respon server", Toast.LENGTH_SHORT).show();
+                }
+            }
 
-            // Note: Idealnya method insert return ID, tapi gapapa kita akali di Intent
-            // Kita akan modifikasi sedikit nanti di helper, tapi untuk sekarang
-            // kita arahkan user ke halaman kuitansi dengan data statis dulu untuk tes layout
-            // ATAU kita cari ID terakhir (max id).
-
-            int lastId = dbHelper.getLastIdSewa(); // <--- Kita perlu tambah fungsi kecil ini di DatabaseHelper sebentar
-
-            Intent intent = new Intent(InputSewaActivity.this, CetakKuitansiActivity.class);
-            intent.putExtra("ID_SEWA", lastId);
-            startActivity(intent);
-            finish(); // Tutup halaman input biar gak bisa back
-
-        } else {
-            Toast.makeText(this, "Gagal Simpan Data", Toast.LENGTH_SHORT).show();
-        }
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Toast.makeText(InputSewaActivity.this, "Error Koneksi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
+
 }

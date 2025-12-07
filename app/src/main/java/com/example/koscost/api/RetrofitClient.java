@@ -8,7 +8,8 @@ public class RetrofitClient {
     // Nanti ganti IP ini dengan IP VPS kamu atau URL n8n
     // Penting: Akhiri dengan tanda miring '/'
     // Contoh: "http://192.168.1.5/kos-api/" atau domain kamu
-    private static final String BASE_URL = "http://202.155.91.191/kos-api/";
+    // IP VPS BARU
+    private static final String BASE_URL = "http://43.157.207.164/kos-api/";
     // Catatan: 10.0.2.2 adalah localhost khusus untuk Emulator Android.
     // Kalau pakai HP asli, harus pakai IP Laptop (misal 192.168.x.x) atau IP VPS Public.
 

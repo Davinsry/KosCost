@@ -38,17 +38,14 @@ public class CetakKuitansiActivity extends AppCompatActivity {
     private CardView cvKuitansi;
     private Button btnCetakPdf;
 
+    // ... import dan variabel sama
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cetak_kuitansi);
 
-        // 2. INISIALISASI DATABASE & ID
-        dbHelper = new DatabaseHelper(this);
-        idSewa = getIntent().getIntExtra("ID_SEWA", 0);
-
-        // 3. BINDING (Menghubungkan variabel dengan ID di XML)
-        // Bagian Data Teks
+        // Binding ID
         tvNama = findViewById(R.id.tv_nama);
         tvNoKamar = findViewById(R.id.tv_no_kamar);
         tvPeriode = findViewById(R.id.tv_periode);
@@ -56,24 +53,37 @@ public class CetakKuitansiActivity extends AppCompatActivity {
         tvMetode = findViewById(R.id.tv_metode);
         tvStatus = findViewById(R.id.tv_status);
         tvTglCetak = findViewById(R.id.tv_tanggal_cetak);
-
-        // Bagian Container PDF & Tombol
         cvKuitansi = findViewById(R.id.cv_kuitansi);
         btnCetakPdf = findViewById(R.id.btn_cetak_pdf);
 
-        // 4. LOGIKA UTAMA
-        // Tampilkan data jika ID ditemukan
-        if (idSewa > 0) {
-            tampilkanDataKuitansi(idSewa);
+        // --- UBAH BAGIAN INI ---
+        // Tangkap Data "Lemparan" dari InputSewaActivity
+        String nama = getIntent().getStringExtra("NAMA");
+        String kamar = getIntent().getStringExtra("KAMAR");
+        double harga = getIntent().getDoubleExtra("HARGA", 0);
+        String status = getIntent().getStringExtra("STATUS");
+
+        if (nama != null) {
+            // Tampilkan langsung tanpa query database!
+            tvNama.setText(nama);
+            tvNoKamar.setText(kamar);
+            tvJumlah.setText(formatRupiah(harga));
+            tvStatus.setText(status);
+            tvPeriode.setText("Bulan Ini"); // Bisa disesuaikan
+            tvMetode.setText("Transfer");
+
+            // Set Tanggal Cetak Otomatis
+            tvTglCetak.setText("Dicetak: " + new java.util.Date().toString());
         } else {
-            Toast.makeText(this, "Data Transaksi Tidak Ditemukan!", Toast.LENGTH_SHORT).show();
+            // Fallback kalau data kosong (misal dibuka manual)
+            Toast.makeText(this, "Tidak ada data kuitansi baru", Toast.LENGTH_SHORT).show();
         }
 
-        // Aksi ketika tombol Cetak ditekan
-        btnCetakPdf.setOnClickListener(v -> {
-            cetakPdf();
-        });
+        // Tombol PDF
+        btnCetakPdf.setOnClickListener(v -> cetakPdf());
     }
+
+    // ... (method formatRupiah dan cetakPdf biarkan saja, tidak perlu diubah)
 
     // --- METHOD UNTUK MENAMPILKAN DATA ---
     private void tampilkanDataKuitansi(int id) {
