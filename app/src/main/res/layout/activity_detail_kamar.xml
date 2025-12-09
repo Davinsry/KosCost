@@ -20,7 +20,8 @@
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_revert"
-            app:tint="#FFFFFF" />
+            app:tint="#FFFFFF"
+            android:contentDescription="Kembali" />
 
         <TextView
             android:id="@+id/tv_judul_kamar"
@@ -57,21 +58,38 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView android:text="Nama Penghuni" android:textStyle="bold"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nama Penghuni"
+                        android:textStyle="bold"/>
+
                     <EditText
                         android:id="@+id/et_detail_nama"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textPersonName"/>
 
-                    <TextView android:text="Nomor WA" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nomor WA"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp"/>
+
                     <EditText
                         android:id="@+id/et_detail_wa"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="phone"/>
 
-                    <TextView android:text="Pekerjaan" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pekerjaan"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp"/>
+
                     <EditText
                         android:id="@+id/et_detail_kerja"
                         android:layout_width="match_parent"
@@ -89,7 +107,11 @@
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
-                            <TextView android:text="Check In" android:textStyle="bold"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Check In"
+                                android:textStyle="bold"/>
                             <EditText
                                 android:id="@+id/et_detail_tgl_in"
                                 android:layout_width="match_parent"
@@ -104,7 +126,11 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
                             android:layout_marginLeft="8dp">
-                            <TextView android:text="Check Out" android:textStyle="bold"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Check Out"
+                                android:textStyle="bold"/>
                             <EditText
                                 android:id="@+id/et_detail_tgl_out"
                                 android:layout_width="match_parent"
@@ -114,14 +140,26 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <TextView android:text="Total Tagihan (Rp)" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Tagihan (Rp)"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp"/>
+
                     <EditText
                         android:id="@+id/et_detail_total"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="number"/>
 
-                    <TextView android:text="Sudah Dibayar (Rp)" android:textStyle="bold" android:layout_marginTop="8dp"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sudah Dibayar (Rp)"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp"/>
+
                     <EditText
                         android:id="@+id/et_detail_bayar"
                         android:layout_width="match_parent"

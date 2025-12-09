@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // --- 3. Tombol Laporan ---
+        /// --- 3. Tombol Laporan ---
         ImageButton btnLaporan = findViewById(R.id.btn_laporan);
         if (btnLaporan != null) {
             btnLaporan.setOnClickListener(v -> {
@@ -74,14 +74,15 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // --- 4. Tombol Profile (OPSIONAL: Jika di XML sudah ditambah tombol profile) ---
-        /* ImageButton btnProfile = findViewById(R.id.btn_profile);
+        // --- 4. Tombol Profile (BARU - JANGAN DI-KOMEN LAGI) ---
+        ImageButton btnProfile = findViewById(R.id.btn_profile);
         if (btnProfile != null) {
-             btnProfile.setOnClickListener(v -> {
-                 startActivity(new Intent(MainActivity.this, ProfileActivity.class));
-             });
+            btnProfile.setOnClickListener(v -> {
+                // Pindah ke Halaman Profile
+                startActivity(new Intent(MainActivity.this, com.example.koscost.activities.ProfileActivity.class));
+            });
         }
-        */
+
     }
 
     // --- Refresh Data saat kembali ke halaman ini ---

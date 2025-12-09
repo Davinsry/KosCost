@@ -1,11 +1,8 @@
-package com.example.koscost.model; // Pastikan nama package benar
+package com.example.koscost.model;
 
 import com.google.gson.annotations.SerializedName;
 
 public class Kamar {
-
-    // @SerializedName("nama_kolom_di_json")
-    // Ini fungsinya mencocokkan nama variabel di PHP dengan di Java
 
     @SerializedName("id_kamar")
     private String idKamar;
@@ -19,7 +16,7 @@ public class Kamar {
     @SerializedName("fasilitas")
     private String fasilitas;
 
-    // Variabel Harga (Sesuai request kamu yang variatif)
+    // Variabel Harga
     @SerializedName("harga_harian")
     private double hargaHarian;
 
@@ -29,10 +26,10 @@ public class Kamar {
     @SerializedName("harga_bulanan")
     private double hargaBulanan;
 
-    // --- Constructor (Kosongkan saja tidak apa-apa) ---
+    // --- Constructor ---
     public Kamar() {}
 
-    // --- Getter (Wajib ada biar bisa dibaca) ---
+    // --- Getter (Untuk Ambil Data) ---
     public String getIdKamar() { return idKamar; }
     public String getNoKamar() { return noKamar; }
     public String getStatus() { return status; }
@@ -41,7 +38,20 @@ public class Kamar {
     public double getHargaMingguan() { return hargaMingguan; }
     public double getHargaBulanan() { return hargaBulanan; }
 
-    // --- Setter (Opsional, buat jaga-jaga) ---
+    // --- Setter (INI YANG TADI KURANG) ---
+    // Tambahkan kode di bawah ini:
+
+    public void setIdKamar(String idKamar) { this.idKamar = idKamar; }
+
     public void setNoKamar(String noKamar) { this.noKamar = noKamar; }
+
     public void setStatus(String status) { this.status = status; }
+
+    public void setFasilitas(String fasilitas) { this.fasilitas = fasilitas; } // <--- Ini yang bikin error tadi
+
+    public void setHargaHarian(double hargaHarian) { this.hargaHarian = hargaHarian; }
+
+    public void setHargaMingguan(double hargaMingguan) { this.hargaMingguan = hargaMingguan; }
+
+    public void setHargaBulanan(double hargaBulanan) { this.hargaBulanan = hargaBulanan; } // <--- Ini juga dibutuhkan
 }
