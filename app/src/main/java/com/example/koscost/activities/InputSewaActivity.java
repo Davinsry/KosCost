@@ -153,26 +153,29 @@ public class InputSewaActivity extends AppCompatActivity {
                     pindahKeKuitansi(nama, noKamar, periodeLengkap, totalHarga, statusLunas, metode);
                 } else {
                     // Jika server error (misal 500), simpan offline juga
-                    simpanOfflineDanLanjut(emailUser, noKamar, nama, wa, kerja, durasiOtomatis, totalHarga, statusLunas, periodeLengkap, metode);
+                    simpanOfflineDanLanjut(emailUser, noKamar, nama, wa, kerja, durasiOtomatis, totalHarga, statusLunas, periodeLengkap, metode, tglIn, tglOut);
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
                 // JIKA GAGAL KONEKSI -> SIMPAN LOKAL (OFFLINE MODE)
-                simpanOfflineDanLanjut(emailUser, noKamar, nama, wa, kerja, durasiOtomatis, totalHarga, statusLunas, periodeLengkap, metode);
+                simpanOfflineDanLanjut(emailUser, noKamar, nama, wa, kerja, durasiOtomatis, totalHarga, statusLunas, periodeLengkap, metode, tglIn, tglOut);
             }
         });
     }
 
     // Method bantuan untuk menyimpan ke SQLite saat offline
-    private void simpanOfflineDanLanjut(String email, String no, String nama, String wa, String kerja, String durasi, double harga, String status, String periodeDisplay, String metode) {
+    // Method bantuan untuk menyimpan ke SQLite saat offline
+    private void simpanOfflineDanLanjut(String email, String no, String nama, String wa, String kerja, String durasi, double harga, String status, String periodeDisplay, String metode, String tglIn, String tglOut) {
         DatabaseHelper db = new DatabaseHelper(InputSewaActivity.this);
-        db.addPendingSewa(email, no, nama, wa, kerja, durasi, harga, status);
 
-        Toast.makeText(InputSewaActivity.this, "Offline: Transaksi Disimpan Lokal.", Toast.LENGTH_LONG).show();
+        // Panggil method addPendingSewa yang BARU (ada parameter tanggalnya)
+        db.addPendingSewa(email, no, nama, wa, kerja, durasi, harga, status, tglIn, tglOut);
 
-        // Tetap lanjut ke kuitansi agar user tidak bingung
+        Toast.makeText(InputSewaActivity.this, "Offline: Data Tersimpan di HP.", Toast.LENGTH_LONG).show();
+
+        // Tetap lanjut ke kuitansi
         pindahKeKuitansi(nama, no, periodeDisplay, harga, status, metode);
     }
 

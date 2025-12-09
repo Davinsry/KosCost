@@ -93,28 +93,56 @@ public class DetailKamarActivity extends AppCompatActivity {
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 try {
                     if (response.isSuccessful()) {
+                        // 1. Sukses Online -> Tampilkan Data Server
                         String res = response.body().string();
                         JSONObject json = new JSONObject(res);
-
-                        idSewaSaatIni = json.optString("id_sewa");
-                        etNama.setText(json.optString("nama_penghuni"));
-                        etWa.setText(json.optString("no_wa"));
-                        etKerja.setText(json.optString("pekerjaan"));
-                        etTglIn.setText(json.optString("tgl_checkin"));
-                        etTglOut.setText(json.optString("tgl_checkout"));
-
-                        double total = json.optDouble("total_tarif", 0);
-                        double bayar = json.optDouble("sudah_dibayar", 0);
-                        etTotal.setText(String.format(Locale.US, "%.0f", total));
-                        etBayar.setText(String.format(Locale.US, "%.0f", bayar));
+                        tampilkanData(json);
+                    } else {
+                        // 2. Gagal Server -> Coba Ambil Offline
+                        ambilDataOffline();
                     }
                 } catch (Exception e) { e.printStackTrace(); }
             }
+
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(DetailKamarActivity.this, "Gagal koneksi", Toast.LENGTH_SHORT).show();
+                // 3. Gagal Koneksi (Offline) -> Coba Ambil Offline
+                ambilDataOffline();
             }
         });
+    }
+
+    // Method baru untuk ambil data offline
+    private void ambilDataOffline() {
+        com.example.koscost.database.DatabaseHelper db = new com.example.koscost.database.DatabaseHelper(this);
+        JSONObject jsonOffline = db.getDetailPendingSewa(noKamar);
+
+        if (jsonOffline != null) {
+            Toast.makeText(this, "Mode Offline: Menampilkan data lokal", Toast.LENGTH_SHORT).show();
+            tampilkanData(jsonOffline);
+
+            // Matikan tombol edit/checkout saat offline agar tidak konflik sync
+            btnUpdate.setEnabled(false);
+            btnCheckout.setEnabled(false);
+            btnUpdate.setText("Menu Edit (Hanya Online)");
+        } else {
+            Toast.makeText(this, "Data tidak ditemukan (Offline)", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Pindahkan logika set text ke sini biar rapi
+    private void tampilkanData(JSONObject json) {
+        idSewaSaatIni = json.optString("id_sewa");
+        etNama.setText(json.optString("nama_penghuni"));
+        etWa.setText(json.optString("no_wa"));
+        etKerja.setText(json.optString("pekerjaan"));
+        etTglIn.setText(json.optString("tgl_checkin"));
+        etTglOut.setText(json.optString("tgl_checkout"));
+
+        double total = json.optDouble("total_tarif", 0);
+        double bayar = json.optDouble("sudah_dibayar", 0);
+        etTotal.setText(String.format(Locale.US, "%.0f", total));
+        etBayar.setText(String.format(Locale.US, "%.0f", bayar));
     }
 
     private void updateDataPenghuni() {

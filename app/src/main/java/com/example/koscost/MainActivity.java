@@ -87,14 +87,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --- LOGIKA SINKRONISASI DATA PENDING ---
+    // --- LOGIKA SINKRONISASI DATA PENDING (DIPERBAIKI) ---
+    // --- LOGIKA SINKRONISASI DATA PENDING (VERSI FIX) ---
     private void syncDataOffline() {
         ApiService api = RetrofitClient.getClient().create(ApiService.class);
 
         // A. Kirim Kamar Pending
         Cursor cKamar = dbHelper.getPendingKamar();
         if (cKamar != null && cKamar.moveToFirst()) {
-            Toast.makeText(this, "Sinkronisasi data pending...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Mengirim data tertunda...", Toast.LENGTH_SHORT).show();
             do {
+                // Ambil ID (Penting untuk penghapusan)
+                int id = cKamar.getInt(cKamar.getColumnIndexOrThrow("id"));
+
                 String email = cKamar.getString(cKamar.getColumnIndexOrThrow("email"));
                 String no = cKamar.getString(cKamar.getColumnIndexOrThrow("no_kamar"));
                 String fas = cKamar.getString(cKamar.getColumnIndexOrThrow("fasilitas"));
@@ -103,11 +108,21 @@ public class MainActivity extends AppCompatActivity {
                 double b = cKamar.getDouble(cKamar.getColumnIndexOrThrow("bulanan"));
 
                 api.tambahKamar(email, no, fas, h, m, b).enqueue(new Callback<ResponseBody>() {
-                    @Override public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {}
-                    @Override public void onFailure(Call<ResponseBody> call, Throwable t) {}
+                    @Override
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        if (response.isSuccessful()) {
+                            // SUKSES -> BARU HAPUS DARI HP
+                            dbHelper.deletePendingKamar(id);
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        // GAGAL/OFFLINE -> BIARKAN SAJA (JANGAN DIHAPUS)
+                        // Nanti akan dicoba lagi saat onResume berikutnya
+                    }
                 });
             } while (cKamar.moveToNext());
-            dbHelper.clearPendingKamar(); // Bersihkan antrean
+            // HAPUS BARIS INI: dbHelper.clearPendingKamar(); <--- JANGAN PAKAI INI LAGI
         }
         if (cKamar != null) cKamar.close();
 
@@ -115,6 +130,8 @@ public class MainActivity extends AppCompatActivity {
         Cursor cSewa = dbHelper.getPendingSewa();
         if (cSewa != null && cSewa.moveToFirst()) {
             do {
+                int id = cSewa.getInt(cSewa.getColumnIndexOrThrow("id"));
+
                 String email = cSewa.getString(cSewa.getColumnIndexOrThrow("email"));
                 String no = cSewa.getString(cSewa.getColumnIndexOrThrow("no_kamar"));
                 String nama = cSewa.getString(cSewa.getColumnIndexOrThrow("nama"));
@@ -125,11 +142,22 @@ public class MainActivity extends AppCompatActivity {
                 String status = cSewa.getString(cSewa.getColumnIndexOrThrow("status"));
 
                 api.simpanSewa(email, no, nama, wa, kerja, durasi, total, status).enqueue(new Callback<ResponseBody>() {
-                    @Override public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {}
-                    @Override public void onFailure(Call<ResponseBody> call, Throwable t) {}
+                    @Override
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        if (response.isSuccessful()) {
+                            // SUKSES -> HAPUS DARI HP
+                            dbHelper.deletePendingSewa(id);
+                            // Refresh tampilan Dashboard biar status "TERISI" muncul
+                            loadDataKamar();
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        // GAGAL -> BIARKAN
+                    }
                 });
             } while (cSewa.moveToNext());
-            dbHelper.clearPendingSewa(); // Bersihkan antrean
+            // HAPUS BARIS INI: dbHelper.clearPendingSewa();
         }
         if (cSewa != null) cSewa.close();
     }
@@ -143,13 +171,22 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call<List<Kamar>> call, Response<List<Kamar>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     List<Kamar> list = response.body();
+
+                    // 1. Tampilkan Data
                     adapter = new KamarAdapter(MainActivity.this, list);
                     rvKamar.setAdapter(adapter);
 
-                    // Simpan data terbaru ke lokal (Cache)
+                    // 2. PENTING: SIMPAN KE LOKAL SEKARANG JUGA!
+                    // Ini yang bikin data lama tetap ada pas offline nanti
                     dbHelper.simpanKamarOffline(list);
+
+                    // (Opsional) Toast untuk debug
+                    // Toast.makeText(MainActivity.this, "Data Disimpan ke Lokal", Toast.LENGTH_SHORT).show();
                 }
             }
+            // ... (onFailure tetap ambil dari lokal) ...
+        });
+    }
 
             @Override
             public void onFailure(Call<List<Kamar>> call, Throwable t) {
