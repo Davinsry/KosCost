@@ -6,8 +6,14 @@
         <item name="colorAccent">#00C853</item>
     </style>
 
+
+    Setelah update ini, tampilan aplikasimu dijamin rapi dan responsif di semua HP! 🚀
+
     <style name="Theme.KosCost.Splash" parent="Theme.KosCost">
         <item name="android:windowFullscreen">true</item> <item name="windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
+        <item name="android:statusBarColor">#0D47A1</item> ```
+
+        Setelah update ini, tampilan aplikasimu dijamin rapi dan responsif di semua HP! 🚀
     </style>
 </resources>

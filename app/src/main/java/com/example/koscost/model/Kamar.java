@@ -16,7 +16,6 @@ public class Kamar {
     @SerializedName("fasilitas")
     private String fasilitas;
 
-    // Variabel Harga
     @SerializedName("harga_harian")
     private double hargaHarian;
 
@@ -26,10 +25,17 @@ public class Kamar {
     @SerializedName("harga_bulanan")
     private double hargaBulanan;
 
+    // --- TAMBAHAN BARU (PENTING UNTUK OFFLINE) ---
+    @SerializedName("nama_penghuni")
+    private String namaPenghuni;
+
+    @SerializedName("id_sewa")
+    private String idSewa;
+
     // --- Constructor ---
     public Kamar() {}
 
-    // --- Getter (Untuk Ambil Data) ---
+    // --- Getter ---
     public String getIdKamar() { return idKamar; }
     public String getNoKamar() { return noKamar; }
     public String getStatus() { return status; }
@@ -38,20 +44,20 @@ public class Kamar {
     public double getHargaMingguan() { return hargaMingguan; }
     public double getHargaBulanan() { return hargaBulanan; }
 
-    // --- Setter (INI YANG TADI KURANG) ---
-    // Tambahkan kode di bawah ini:
+    // Getter Baru
+    public String getNamaPenghuni() { return namaPenghuni; }
+    public String getIdSewa() { return idSewa; }
 
+    // --- Setter ---
     public void setIdKamar(String idKamar) { this.idKamar = idKamar; }
-
     public void setNoKamar(String noKamar) { this.noKamar = noKamar; }
-
     public void setStatus(String status) { this.status = status; }
-
-    public void setFasilitas(String fasilitas) { this.fasilitas = fasilitas; } // <--- Ini yang bikin error tadi
-
+    public void setFasilitas(String fasilitas) { this.fasilitas = fasilitas; }
     public void setHargaHarian(double hargaHarian) { this.hargaHarian = hargaHarian; }
-
     public void setHargaMingguan(double hargaMingguan) { this.hargaMingguan = hargaMingguan; }
+    public void setHargaBulanan(double hargaBulanan) { this.hargaBulanan = hargaBulanan; }
 
-    public void setHargaBulanan(double hargaBulanan) { this.hargaBulanan = hargaBulanan; } // <--- Ini juga dibutuhkan
+    // Setter Baru
+    public void setNamaPenghuni(String namaPenghuni) { this.namaPenghuni = namaPenghuni; }
+    public void setIdSewa(String idSewa) { this.idSewa = idSewa; }
 }

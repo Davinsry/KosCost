@@ -1,6 +1,7 @@
 package com.example.koscost.activities;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -27,8 +28,8 @@ public class DetailKamarActivity extends AppCompatActivity {
 
     TextView tvJudul;
     EditText etNama, etWa, etKerja, etTglIn, etTglOut, etTotal, etBayar;
-    Button btnUpdate, btnCheckout;
-    ImageButton btnBack; // Tombol Back
+    Button btnUpdate, btnCheckout, btnCetak; // Tambah btnCetak
+    ImageButton btnBack;
     String noKamar, idSewaSaatIni;
 
     @Override
@@ -36,7 +37,7 @@ public class DetailKamarActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail_kamar);
 
-        // Binding ID (Harus sama persis dengan XML)
+        // Binding ID
         tvJudul = findViewById(R.id.tv_judul_kamar);
         etNama = findViewById(R.id.et_detail_nama);
         etWa = findViewById(R.id.et_detail_wa);
@@ -48,16 +49,15 @@ public class DetailKamarActivity extends AppCompatActivity {
 
         btnUpdate = findViewById(R.id.btn_update_data);
         btnCheckout = findViewById(R.id.btn_checkout);
+        btnCetak = findViewById(R.id.btn_cetak_ulang); // Binding tombol cetak
         btnBack = findViewById(R.id.btn_back);
 
-        // Logic Tombol Back
+        // Setup Buttons & Listeners
         btnBack.setOnClickListener(v -> finish());
 
-        // Format Uang
         etTotal.addTextChangedListener(new CurrencyTextWatcher(etTotal));
         etBayar.addTextChangedListener(new CurrencyTextWatcher(etBayar));
 
-        // Date Picker
         setupDatePicker(etTglIn);
         setupDatePicker(etTglOut);
 
@@ -72,6 +72,34 @@ public class DetailKamarActivity extends AppCompatActivity {
 
         btnUpdate.setOnClickListener(v -> updateDataPenghuni());
         btnCheckout.setOnClickListener(v -> dialogCheckout());
+
+        // --- LOGIKA CETAK LAGI ---
+        btnCetak.setOnClickListener(v -> {
+            String nama = etNama.getText().toString();
+            String tglIn = etTglIn.getText().toString();
+            String tglOut = etTglOut.getText().toString();
+
+            // Ambil harga dari text (hilangkan format rupiahnya)
+            double harga = CurrencyTextWatcher.parseCurrency(etTotal.getText().toString());
+            double bayar = CurrencyTextWatcher.parseCurrency(etBayar.getText().toString());
+            String status = (bayar >= harga) ? "Lunas" : "Belum Lunas";
+            String periode = tglIn + " s.d " + tglOut;
+
+            if (nama.isEmpty()) {
+                Toast.makeText(this, "Data belum lengkap", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Pindah ke halaman Kuitansi
+            Intent intent = new Intent(DetailKamarActivity.this, CetakKuitansiActivity.class);
+            intent.putExtra("NAMA", nama);
+            intent.putExtra("KAMAR", noKamar);
+            intent.putExtra("PERIODE", periode);
+            intent.putExtra("HARGA", harga);
+            intent.putExtra("STATUS", status);
+            intent.putExtra("METODE", "Tunai/Transfer"); // Default
+            startActivity(intent);
+        });
     }
 
     private void setupDatePicker(EditText editText) {
@@ -93,12 +121,10 @@ public class DetailKamarActivity extends AppCompatActivity {
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 try {
                     if (response.isSuccessful()) {
-                        // 1. Sukses Online -> Tampilkan Data Server
                         String res = response.body().string();
                         JSONObject json = new JSONObject(res);
                         tampilkanData(json);
                     } else {
-                        // 2. Gagal Server -> Coba Ambil Offline
                         ambilDataOffline();
                     }
                 } catch (Exception e) { e.printStackTrace(); }
@@ -106,31 +132,30 @@ public class DetailKamarActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                // 3. Gagal Koneksi (Offline) -> Coba Ambil Offline
                 ambilDataOffline();
             }
         });
     }
 
-    // Method baru untuk ambil data offline
     private void ambilDataOffline() {
         com.example.koscost.database.DatabaseHelper db = new com.example.koscost.database.DatabaseHelper(this);
         JSONObject jsonOffline = db.getDetailPendingSewa(noKamar);
 
         if (jsonOffline != null) {
-            Toast.makeText(this, "Mode Offline: Menampilkan data lokal", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Mode Offline", Toast.LENGTH_SHORT).show();
             tampilkanData(jsonOffline);
 
-            // Matikan tombol edit/checkout saat offline agar tidak konflik sync
+            // Matikan tombol edit saat offline agar aman
             btnUpdate.setEnabled(false);
             btnCheckout.setEnabled(false);
-            btnUpdate.setText("Menu Edit (Hanya Online)");
+
+            // TAPI tombol cetak tetap dinyalakan biar bisa print kuitansi pending
+            btnCetak.setEnabled(true);
         } else {
             Toast.makeText(this, "Data tidak ditemukan (Offline)", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // Pindahkan logika set text ke sini biar rapi
     private void tampilkanData(JSONObject json) {
         idSewaSaatIni = json.optString("id_sewa");
         etNama.setText(json.optString("nama_penghuni"));
@@ -171,7 +196,7 @@ public class DetailKamarActivity extends AppCompatActivity {
     private void dialogCheckout() {
         new AlertDialog.Builder(this)
                 .setTitle("Konfirmasi Check-Out")
-                .setMessage("Data akan dihapus dari kamar ini. Lanjutkan?")
+                .setMessage("Yakin ingin check-out? Data akan diarsipkan.")
                 .setPositiveButton("Ya", (dialog, which) -> {
                     ApiService api = RetrofitClient.getClient().create(ApiService.class);
                     api.prosesCheckout(noKamar).enqueue(new Callback<ResponseBody>() {
@@ -189,9 +214,7 @@ public class DetailKamarActivity extends AppCompatActivity {
     }
 
     private String hitungDurasi(String in, String out) {
-        // Logic hitung hari sederhana
         try {
-            // ... (Kode sama seperti sebelumnya)
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
             long diff = sdf.parse(out).getTime() - sdf.parse(in).getTime();
             long days = java.util.concurrent.TimeUnit.DAYS.convert(diff, java.util.concurrent.TimeUnit.MILLISECONDS);
