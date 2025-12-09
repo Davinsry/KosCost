@@ -13,8 +13,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.koscost.R;
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
-import com.example.koscost.utils.CurrencyTextWatcher; // Pastikan ini ada
-import com.example.koscost.utils.SessionManager; // Tambah SessionManager
+import com.example.koscost.utils.CurrencyTextWatcher;
+import com.example.koscost.utils.SessionManager;
+import com.example.koscost.database.DatabaseHelper; // Import Database Helper
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -29,7 +30,7 @@ public class InputSewaActivity extends AppCompatActivity {
     EditText etNama, etWa, etPekerjaan, etTglIn, etTglOut, etTotal, etBayar, etMetode;
     TextView tvNoKamar;
     Button btnSimpan;
-    SessionManager sessionManager; // Variabel Session
+    SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,11 +40,11 @@ public class InputSewaActivity extends AppCompatActivity {
         // Inisialisasi Session
         sessionManager = new SessionManager(this);
 
-        // Binding
+        // Binding View
         etNama = findViewById(R.id.et_nama_penghuni);
         etWa = findViewById(R.id.et_nomor_wa);
         etPekerjaan = findViewById(R.id.et_pekerjaan);
-        tvNoKamar = findViewById(R.id.et_nomor_kamar); // Pastikan di XML pakai TextView
+        tvNoKamar = findViewById(R.id.et_nomor_kamar);
         etTglIn = findViewById(R.id.et_tgl_checkin);
         etTglOut = findViewById(R.id.et_tgl_checkout);
         etTotal = findViewById(R.id.et_total_harga);
@@ -51,17 +52,23 @@ public class InputSewaActivity extends AppCompatActivity {
         etMetode = findViewById(R.id.et_metode_bayar);
         btnSimpan = findViewById(R.id.btn_simpan);
 
-        // Ambil Nomor Kamar
+        // Ambil Data dari Intent (Nomor Kamar)
         String noKamar = getIntent().getStringExtra("NO_KAMAR");
         if (noKamar != null) {
             tvNoKamar.setText(noKamar);
         }
 
-        // Pasang Format Uang
+        // Auto-fill harga jika ada dari intent (Opsional, biar enak)
+        double hargaBulanan = getIntent().getDoubleExtra("HARGA_BULANAN", 0);
+        if (hargaBulanan > 0) {
+            // Format manual atau biarkan kosong biar diisi user
+        }
+
+        // Pasang Format Uang (CurrencyWatcher)
         etTotal.addTextChangedListener(new CurrencyTextWatcher(etTotal));
         etBayar.addTextChangedListener(new CurrencyTextWatcher(etBayar));
 
-        // Pasang Kalendar
+        // Pasang Picker Tanggal
         setupDatePicker(etTglIn);
         setupDatePicker(etTglOut);
 
@@ -79,9 +86,10 @@ public class InputSewaActivity extends AppCompatActivity {
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
         });
     }
+
     private String hitungDurasiOtomatis(String tglMasuk, String tglKeluar) {
         try {
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
             java.util.Date dateIn = sdf.parse(tglMasuk);
             java.util.Date dateOut = sdf.parse(tglKeluar);
 
@@ -117,45 +125,67 @@ public class InputSewaActivity extends AppCompatActivity {
         }
 
         String emailUser = sessionManager.getEmail();
-        if (emailUser == null) return;
+        if (emailUser == null) {
+            Toast.makeText(this, "Sesi Habis, Login Ulang", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         double totalHarga = CurrencyTextWatcher.parseCurrency(strTotal);
         double uangBayar = CurrencyTextWatcher.parseCurrency(strBayar);
         String statusLunas = (uangBayar >= totalHarga) ? "Lunas" : "Belum Lunas";
 
-        // --- HITUNG DURASI OTOMATIS DI SINI ---
+        // Hitung Durasi Otomatis
         String durasiOtomatis = hitungDurasiOtomatis(tglIn, tglOut);
+        String periodeLengkap = tglIn + " s.d " + tglOut + " (" + durasiOtomatis + ")";
 
         ApiService api = RetrofitClient.getClient().create(ApiService.class);
 
         api.simpanSewa(
                 emailUser,
                 noKamar, nama, wa, kerja,
-                durasiOtomatis, // Pakai hasil hitungan
+                durasiOtomatis,
                 totalHarga, statusLunas
         ).enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
-                    Toast.makeText(InputSewaActivity.this, "Check-In Berhasil!", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(InputSewaActivity.this, CetakKuitansiActivity.class);
-                    intent.putExtra("NAMA", nama);
-                    intent.putExtra("KAMAR", noKamar);
-                    intent.putExtra("PERIODE", tglIn + " s.d " + tglOut + " (" + durasiOtomatis + ")");
-                    intent.putExtra("HARGA", totalHarga);
-                    intent.putExtra("STATUS", statusLunas);
-                    intent.putExtra("METODE", metode);
-                    startActivity(intent);
-                    finish();
+                    Toast.makeText(InputSewaActivity.this, "Check-In Berhasil (Online)!", Toast.LENGTH_SHORT).show();
+                    pindahKeKuitansi(nama, noKamar, periodeLengkap, totalHarga, statusLunas, metode);
                 } else {
-                    Toast.makeText(InputSewaActivity.this, "Gagal Server", Toast.LENGTH_SHORT).show();
+                    // Jika server error (misal 500), simpan offline juga
+                    simpanOfflineDanLanjut(emailUser, noKamar, nama, wa, kerja, durasiOtomatis, totalHarga, statusLunas, periodeLengkap, metode);
                 }
             }
+
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(InputSewaActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                // JIKA GAGAL KONEKSI -> SIMPAN LOKAL (OFFLINE MODE)
+                simpanOfflineDanLanjut(emailUser, noKamar, nama, wa, kerja, durasiOtomatis, totalHarga, statusLunas, periodeLengkap, metode);
             }
         });
     }
 
+    // Method bantuan untuk menyimpan ke SQLite saat offline
+    private void simpanOfflineDanLanjut(String email, String no, String nama, String wa, String kerja, String durasi, double harga, String status, String periodeDisplay, String metode) {
+        DatabaseHelper db = new DatabaseHelper(InputSewaActivity.this);
+        db.addPendingSewa(email, no, nama, wa, kerja, durasi, harga, status);
+
+        Toast.makeText(InputSewaActivity.this, "Offline: Transaksi Disimpan Lokal.", Toast.LENGTH_LONG).show();
+
+        // Tetap lanjut ke kuitansi agar user tidak bingung
+        pindahKeKuitansi(nama, no, periodeDisplay, harga, status, metode);
+    }
+
+    // Method bantuan untuk pindah intent (biar tidak duplikat kode)
+    private void pindahKeKuitansi(String nama, String kamar, String periode, double harga, String status, String metode) {
+        Intent intent = new Intent(InputSewaActivity.this, CetakKuitansiActivity.class);
+        intent.putExtra("NAMA", nama);
+        intent.putExtra("KAMAR", kamar);
+        intent.putExtra("PERIODE", periode);
+        intent.putExtra("HARGA", harga);
+        intent.putExtra("STATUS", status);
+        intent.putExtra("METODE", metode);
+        startActivity(intent);
+        finish();
+    }
 }
