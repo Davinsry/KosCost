@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:fitsSystemWindows="true"
     android:background="#F5F5F5">
 
     <LinearLayout
@@ -59,7 +60,7 @@
                     android:padding="16dp">
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Nama Penghuni"
                         android:textStyle="bold"/>
@@ -71,7 +72,7 @@
                         android:inputType="textPersonName"/>
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Nomor WA"
                         android:textStyle="bold"
@@ -84,7 +85,7 @@
                         android:inputType="phone"/>
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Pekerjaan"
                         android:textStyle="bold"
@@ -108,7 +109,7 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="Check In"
                                 android:textStyle="bold"/>
@@ -127,7 +128,7 @@
                             android:orientation="vertical"
                             android:layout_marginLeft="8dp">
                             <TextView
-                                android:layout_width="wrap_content"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="Check Out"
                                 android:textStyle="bold"/>
@@ -141,7 +142,7 @@
                     </LinearLayout>
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Total Tagihan (Rp)"
                         android:textStyle="bold"
@@ -154,7 +155,7 @@
                         android:inputType="number"/>
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Sudah Dibayar (Rp)"
                         android:textStyle="bold"

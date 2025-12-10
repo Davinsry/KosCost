@@ -313,6 +313,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.update("tb_kamar_lokal", updateCache, "id_kamar = ?", new String[]{idKamar});
     }
 
+
     // =========================================================================
     // HELPER METHODS: GET & DELETE PENDING (FOR SYNC)
     // =========================================================================
