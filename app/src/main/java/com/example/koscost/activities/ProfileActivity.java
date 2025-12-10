@@ -27,7 +27,7 @@ public class ProfileActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_profile); // Pastikan XML tadi namanya benar
+        setContentView(R.layout.activity_profile);
 
         sessionManager = new SessionManager(this);
 
@@ -41,8 +41,10 @@ public class ProfileActivity extends AppCompatActivity {
         etEmail.setText(emailLama);
         etNamaKos.setText(sessionManager.getNamaKos());
 
-        btnBack.setOnClickListener(v -> finish());
+        // Tombol Back
+        if(btnBack != null) btnBack.setOnClickListener(v -> finish());
 
+        // Tombol Simpan
         btnSimpan.setOnClickListener(v -> simpanProfile());
     }
 
@@ -51,10 +53,11 @@ public class ProfileActivity extends AppCompatActivity {
         String namaKosBaru = etNamaKos.getText().toString().trim();
 
         if (emailBaru.isEmpty() || namaKosBaru.isEmpty()) {
-            Toast.makeText(this, "Data tidak boleh kosong", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Email dan Nama Kos tidak boleh kosong", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // Panggil API Update
         ApiService api = RetrofitClient.getClient().create(ApiService.class);
         api.updateProfile(emailLama, emailBaru, namaKosBaru).enqueue(new Callback<ResponseBody>() {
             @Override
@@ -62,20 +65,28 @@ public class ProfileActivity extends AppCompatActivity {
                 try {
                     String res = response.body().string();
                     JSONObject json = new JSONObject(res);
+
                     if (json.getString("status").equals("sukses")) {
                         Toast.makeText(ProfileActivity.this, "Profil Berhasil Diupdate!", Toast.LENGTH_SHORT).show();
 
-                        // Update Session di HP
+                        // PENTING: Update Session di HP agar tidak perlu login ulang
+                        // Pastikan method ini ada di SessionManager, kalau tidak ada pakai createLoginSession
                         sessionManager.createLoginSession(emailBaru, namaKosBaru);
-                        emailLama = emailBaru;
+
+                        emailLama = emailBaru; // Update variabel lokal
+                        finish(); // Kembali ke dashboard
                     } else {
                         Toast.makeText(ProfileActivity.this, "Gagal: " + json.getString("message"), Toast.LENGTH_SHORT).show();
                     }
-                } catch (Exception e) { e.printStackTrace(); }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(ProfileActivity.this, "Gagal memproses respon", Toast.LENGTH_SHORT).show();
+                }
             }
+
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(ProfileActivity.this, "Error Koneksi", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ProfileActivity.this, "Gagal Koneksi: Periksa Internet Anda", Toast.LENGTH_SHORT).show();
             }
         });
     }

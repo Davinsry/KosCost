@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.koscost.R;
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
+import com.example.koscost.database.DatabaseHelper; // Import ini penting
 import com.example.koscost.utils.CurrencyTextWatcher;
 
 import org.json.JSONObject;
@@ -28,7 +29,7 @@ public class DetailKamarActivity extends AppCompatActivity {
 
     TextView tvJudul;
     EditText etNama, etWa, etKerja, etTglIn, etTglOut, etTotal, etBayar;
-    Button btnUpdate, btnCheckout, btnCetak; // Tambah btnCetak
+    Button btnUpdate, btnCheckout, btnCetak;
     ImageButton btnBack;
     String noKamar, idSewaSaatIni;
 
@@ -37,7 +38,6 @@ public class DetailKamarActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail_kamar);
 
-        // Binding ID
         tvJudul = findViewById(R.id.tv_judul_kamar);
         etNama = findViewById(R.id.et_detail_nama);
         etWa = findViewById(R.id.et_detail_wa);
@@ -49,15 +49,12 @@ public class DetailKamarActivity extends AppCompatActivity {
 
         btnUpdate = findViewById(R.id.btn_update_data);
         btnCheckout = findViewById(R.id.btn_checkout);
-        btnCetak = findViewById(R.id.btn_cetak_ulang); // Binding tombol cetak
+        btnCetak = findViewById(R.id.btn_cetak_ulang);
         btnBack = findViewById(R.id.btn_back);
 
-        // Setup Buttons & Listeners
         btnBack.setOnClickListener(v -> finish());
-
         etTotal.addTextChangedListener(new CurrencyTextWatcher(etTotal));
         etBayar.addTextChangedListener(new CurrencyTextWatcher(etBayar));
-
         setupDatePicker(etTglIn);
         setupDatePicker(etTglOut);
 
@@ -65,39 +62,26 @@ public class DetailKamarActivity extends AppCompatActivity {
         if (noKamar != null) {
             tvJudul.setText("Kamar " + noKamar);
             loadDataPenghuni();
-        } else {
-            Toast.makeText(this, "Error: Nomor Kamar Kosong", Toast.LENGTH_SHORT).show();
-            finish();
-        }
+        } else { finish(); }
 
         btnUpdate.setOnClickListener(v -> updateDataPenghuni());
         btnCheckout.setOnClickListener(v -> dialogCheckout());
 
-        // --- LOGIKA CETAK LAGI ---
         btnCetak.setOnClickListener(v -> {
             String nama = etNama.getText().toString();
             String tglIn = etTglIn.getText().toString();
             String tglOut = etTglOut.getText().toString();
-
-            // Ambil harga dari text (hilangkan format rupiahnya)
             double harga = CurrencyTextWatcher.parseCurrency(etTotal.getText().toString());
-            double bayar = CurrencyTextWatcher.parseCurrency(etBayar.getText().toString());
-            String status = (bayar >= harga) ? "Lunas" : "Belum Lunas";
+            String status = "Lunas";
             String periode = tglIn + " s.d " + tglOut;
 
-            if (nama.isEmpty()) {
-                Toast.makeText(this, "Data belum lengkap", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            // Pindah ke halaman Kuitansi
             Intent intent = new Intent(DetailKamarActivity.this, CetakKuitansiActivity.class);
             intent.putExtra("NAMA", nama);
             intent.putExtra("KAMAR", noKamar);
             intent.putExtra("PERIODE", periode);
             intent.putExtra("HARGA", harga);
             intent.putExtra("STATUS", status);
-            intent.putExtra("METODE", "Tunai/Transfer"); // Default
+            intent.putExtra("METODE", "Tunai/Transfer");
             startActivity(intent);
         });
     }
@@ -121,36 +105,26 @@ public class DetailKamarActivity extends AppCompatActivity {
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 try {
                     if (response.isSuccessful()) {
-                        String res = response.body().string();
-                        JSONObject json = new JSONObject(res);
+                        JSONObject json = new JSONObject(response.body().string());
                         tampilkanData(json);
-                    } else {
-                        ambilDataOffline();
-                    }
-                } catch (Exception e) { e.printStackTrace(); }
+                    } else { ambilDataOffline(); }
+                } catch (Exception e) { ambilDataOffline(); }
             }
-
             @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                ambilDataOffline();
-            }
+            public void onFailure(Call<ResponseBody> call, Throwable t) { ambilDataOffline(); }
         });
     }
 
     private void ambilDataOffline() {
-        com.example.koscost.database.DatabaseHelper db = new com.example.koscost.database.DatabaseHelper(this);
+        DatabaseHelper db = new DatabaseHelper(this);
         JSONObject jsonOffline = db.getDetailPendingSewa(noKamar);
 
         if (jsonOffline != null) {
             Toast.makeText(this, "Mode Offline", Toast.LENGTH_SHORT).show();
             tampilkanData(jsonOffline);
-
-            // Matikan tombol edit saat offline agar aman
-            btnUpdate.setEnabled(false);
-            btnCheckout.setEnabled(false);
-
-            // TAPI tombol cetak tetap dinyalakan biar bisa print kuitansi pending
-            btnCetak.setEnabled(true);
+            // Tombol tetap aktif agar bisa edit offline
+            btnUpdate.setEnabled(true);
+            btnCheckout.setEnabled(true);
         } else {
             Toast.makeText(this, "Data tidak ditemukan (Offline)", Toast.LENGTH_SHORT).show();
         }
@@ -186,31 +160,52 @@ public class DetailKamarActivity extends AppCompatActivity {
                 .enqueue(new Callback<ResponseBody>() {
                     @Override
                     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                        Toast.makeText(DetailKamarActivity.this, "Data Berhasil Diupdate!", Toast.LENGTH_SHORT).show();
+                        if (response.isSuccessful()) {
+                            Toast.makeText(DetailKamarActivity.this, "Data Berhasil Diupdate!", Toast.LENGTH_SHORT).show();
+                        } else {
+                            simpanUpdateOffline(idSewaSaatIni, nama, wa, kerja, tglIn, tglOut, durasi, total, bayar, status, noKamar);
+                        }
                     }
                     @Override
-                    public void onFailure(Call<ResponseBody> call, Throwable t) {}
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        simpanUpdateOffline(idSewaSaatIni, nama, wa, kerja, tglIn, tglOut, durasi, total, bayar, status, noKamar);
+                    }
                 });
+    }
+
+    private void simpanUpdateOffline(String idSewa, String nama, String wa, String kerja, String in, String out, String durasi, double total, double bayar, String status, String noKamar) {
+        DatabaseHelper db = new DatabaseHelper(this);
+        db.addPendingUpdateSewa(idSewa, nama, wa, kerja, in, out, durasi, total, bayar, status, noKamar);
+        Toast.makeText(this, "Offline: Perubahan Disimpan di HP", Toast.LENGTH_SHORT).show();
     }
 
     private void dialogCheckout() {
         new AlertDialog.Builder(this)
                 .setTitle("Konfirmasi Check-Out")
-                .setMessage("Yakin ingin check-out? Data akan diarsipkan.")
+                .setMessage("Yakin ingin check-out?")
                 .setPositiveButton("Ya", (dialog, which) -> {
                     ApiService api = RetrofitClient.getClient().create(ApiService.class);
                     api.prosesCheckout(noKamar).enqueue(new Callback<ResponseBody>() {
                         @Override
                         public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                            Toast.makeText(DetailKamarActivity.this, "Berhasil Check-Out", Toast.LENGTH_SHORT).show();
-                            finish();
+                            if (response.isSuccessful()) {
+                                Toast.makeText(DetailKamarActivity.this, "Berhasil Check-Out", Toast.LENGTH_SHORT).show();
+                                finish();
+                            } else { checkoutOffline(); }
                         }
                         @Override
-                        public void onFailure(Call<ResponseBody> call, Throwable t) {}
+                        public void onFailure(Call<ResponseBody> call, Throwable t) { checkoutOffline(); }
                     });
                 })
                 .setNegativeButton("Batal", null)
                 .show();
+    }
+
+    private void checkoutOffline() {
+        DatabaseHelper db = new DatabaseHelper(this);
+        db.addPendingCheckout(noKamar);
+        Toast.makeText(this, "Offline: Checkout Disimpan. Kamar jadi Kosong.", Toast.LENGTH_SHORT).show();
+        finish();
     }
 
     private String hitungDurasi(String in, String out) {
