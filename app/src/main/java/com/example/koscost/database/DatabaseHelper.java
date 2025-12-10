@@ -13,7 +13,7 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "KosCost.db";
-    private static final int DATABASE_VERSION = 5; // NAIK KE VERSI 5
+    private static final int DATABASE_VERSION = 5;
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -21,7 +21,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        // 1. Cache & Pending Input (Lama)
+        // 1. Cache & Pending Input
         db.execSQL("CREATE TABLE tb_kamar_lokal (id_kamar INTEGER PRIMARY KEY, no_kamar TEXT, status TEXT, fasilitas TEXT, harga_bulanan DOUBLE, nama_penghuni TEXT, id_sewa TEXT)");
         db.execSQL("CREATE TABLE tb_pending_kamar (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, no_kamar TEXT, fasilitas TEXT, harian DOUBLE, mingguan DOUBLE, bulanan DOUBLE)");
         db.execSQL("CREATE TABLE tb_pending_sewa (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, no_kamar TEXT, nama TEXT, wa TEXT, kerja TEXT, durasi TEXT, total DOUBLE, status TEXT, tgl_in TEXT, tgl_out TEXT)");
@@ -37,20 +37,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS tb_kamar_lokal");
         db.execSQL("DROP TABLE IF EXISTS tb_pending_kamar");
         db.execSQL("DROP TABLE IF EXISTS tb_pending_sewa");
-        // Drop tabel baru juga
         db.execSQL("DROP TABLE IF EXISTS tb_pending_update_sewa");
         db.execSQL("DROP TABLE IF EXISTS tb_pending_checkout");
         db.execSQL("DROP TABLE IF EXISTS tb_pending_edit_kamar");
         onCreate(db);
     }
 
-    // --- HELPER UNTUK OFFLINE ACTION (SIMPAN KE ANTRIAN & UPDATE TAMPILAN LOKAL) ---
+    // --- HELPER UNTUK OFFLINE ACTION ---
 
-    // 1. UPDATE SEWA OFFLINE
     public void addPendingUpdateSewa(String idSewa, String nama, String wa, String kerja, String tglIn, String tglOut, String durasi, double total, double bayar, String status, String noKamar) {
         SQLiteDatabase db = this.getWritableDatabase();
-
-        // A. Simpan ke Antrean
         ContentValues values = new ContentValues();
         values.put("id_sewa", idSewa);
         values.put("nama", nama);
@@ -64,34 +60,28 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("status", status);
         db.insert("tb_pending_update_sewa", null, values);
 
-        // B. Update Tampilan Cache Lokal (Biar user lihat perubahannya langsung)
+        // Update Cache Lokal
         ContentValues updateCache = new ContentValues();
         updateCache.put("nama_penghuni", nama);
         db.update("tb_kamar_lokal", updateCache, "no_kamar = ?", new String[]{noKamar});
     }
 
-    // 2. CHECKOUT OFFLINE
     public void addPendingCheckout(String noKamar) {
         SQLiteDatabase db = this.getWritableDatabase();
-
-        // A. Simpan ke Antrean
         ContentValues values = new ContentValues();
         values.put("no_kamar", noKamar);
         db.insert("tb_pending_checkout", null, values);
 
-        // B. Update Tampilan Cache Lokal (Kosongkan kamar)
+        // Update Cache Lokal (Kosongkan)
         ContentValues updateCache = new ContentValues();
-        updateCache.put("status", "0"); // Jadi Kosong
+        updateCache.put("status", "0");
         updateCache.put("nama_penghuni", "");
         updateCache.put("id_sewa", "");
         db.update("tb_kamar_lokal", updateCache, "no_kamar = ?", new String[]{noKamar});
     }
 
-    // 3. EDIT KAMAR OFFLINE
     public void addPendingEditKamar(String idKamar, String noKamar, String fas, double h, double m, double b) {
         SQLiteDatabase db = this.getWritableDatabase();
-
-        // A. Simpan ke Antrean
         ContentValues values = new ContentValues();
         values.put("id_kamar", idKamar);
         values.put("no_kamar", noKamar);
@@ -101,12 +91,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("bulanan", b);
         db.insert("tb_pending_edit_kamar", null, values);
 
-        // B. Update Tampilan Cache Lokal
+        // Update Cache Lokal
         ContentValues updateCache = new ContentValues();
         updateCache.put("no_kamar", noKamar);
         updateCache.put("fasilitas", fas);
         updateCache.put("harga_bulanan", b);
-        // Warning: Jika no_kamar diubah, pastikan id_kamar tetap sama di logic update
         db.update("tb_kamar_lokal", updateCache, "id_kamar = ?", new String[]{idKamar});
     }
 
@@ -120,14 +109,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public Cursor getPendingEditKamar() { return this.getReadableDatabase().rawQuery("SELECT * FROM tb_pending_edit_kamar", null); }
     public void deletePendingEditKamar(int id) { this.getWritableDatabase().delete("tb_pending_edit_kamar", "id = ?", new String[]{String.valueOf(id)}); }
 
-    // --- (BAGIAN LAMA TETAP ADA DI BAWAH INI) ---
-    // Pastikan method simpanKamarOffline, getKamarOffline, getDetailPendingSewa, addPendingSewa, addPendingKamar TETAP ADA dan TIDAK DIUBAH dari versi sebelumnya.
-    // Copy method-method lama tersebut ke sini.
+    // --- CORE FEATURES ---
 
-    // ... [COPY KODE LAMA DARI JAWABAN SEBELUMNYA DI SINI] ...
-
-    // Agar tidak terlalu panjang, saya asumsikan kamu meng-copy method lama (simpanKamarOffline, getKamarOffline, dll) di sini.
-    // Jika butuh full code lagi, info ya. Tapi intinya tambah 3 method addPending... di atas dan 3 pasang get/delete cursor.
     public void simpanKamarOffline(List<Kamar> listKamar) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM tb_kamar_lokal");
@@ -135,7 +118,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         try {
             for (Kamar k : listKamar) {
                 ContentValues values = new ContentValues();
-                values.put("id_kamar", k.getIdKamar()); // PENTING: Simpan ID Kamar untuk Edit Nanti
+                values.put("id_kamar", k.getIdKamar());
                 values.put("no_kamar", k.getNoKamar());
                 values.put("status", k.getStatus());
                 values.put("fasilitas", k.getFasilitas());
@@ -167,7 +150,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         c.close();
 
-        // Gabung pending kamar (logic sama seperti sebelumnya)
+        // Gabung Pending Kamar
         Cursor cPending = db.rawQuery("SELECT * FROM tb_pending_kamar", null);
         if (cPending.moveToFirst()) {
             do {
@@ -182,7 +165,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         cPending.close();
 
-        // Update status pending sewa (logic sama seperti sebelumnya)
+        // Update Status Pending Sewa
         List<String> kamarTerisiPending = new ArrayList<>();
         Cursor cSewa = db.rawQuery("SELECT no_kamar FROM tb_pending_sewa", null);
         if (cSewa.moveToFirst()) {
@@ -195,14 +178,57 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return list;
     }
 
-    // Method helper getDetailPendingSewa dan lainnya jangan lupa dimasukkan kembali
     public JSONObject getDetailPendingSewa(String noKamar) {
-        // ... (Kode sama seperti jawaban sebelumnya, tidak berubah) ...
-        // Agar simpel, saya skip di sini, tapi di file aslimu harus ada ya!
-        return null; // Ganti dengan logic detail sebelumnya
+        SQLiteDatabase db = this.getReadableDatabase();
+        JSONObject json = null;
+
+        // 1. Cek di Pending Sewa (Prioritas Utama: Transaksi Offline barusan)
+        Cursor c = db.rawQuery("SELECT * FROM tb_pending_sewa WHERE no_kamar = ?", new String[]{noKamar});
+        if (c.moveToLast()) {
+            try {
+                json = new JSONObject();
+                json.put("id_sewa", "PENDING_LOKAL");
+                json.put("nama_penghuni", c.getString(c.getColumnIndexOrThrow("nama")));
+                json.put("no_wa", c.getString(c.getColumnIndexOrThrow("wa")));
+                json.put("pekerjaan", c.getString(c.getColumnIndexOrThrow("kerja")));
+                json.put("durasi_sewa", c.getString(c.getColumnIndexOrThrow("durasi")));
+                json.put("total_tarif", c.getDouble(c.getColumnIndexOrThrow("total")));
+                json.put("sudah_dibayar", c.getDouble(c.getColumnIndexOrThrow("total")));
+                json.put("tgl_checkin", c.getString(c.getColumnIndexOrThrow("tgl_in")));
+                json.put("tgl_checkout", c.getString(c.getColumnIndexOrThrow("tgl_out")));
+                json.put("sisa_bayar", 0);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+        c.close();
+
+        // 2. Jika tidak ada di Pending, Cek di Cache Kamar (Data terakhir dari server)
+        if (json == null) {
+            Cursor cLokal = db.rawQuery("SELECT * FROM tb_kamar_lokal WHERE no_kamar = ?", new String[]{noKamar});
+            if (cLokal.moveToFirst()) {
+                String nama = cLokal.getString(cLokal.getColumnIndexOrThrow("nama_penghuni"));
+                String idSewa = cLokal.getString(cLokal.getColumnIndexOrThrow("id_sewa"));
+
+                if (nama != null && !nama.isEmpty()) {
+                    try {
+                        json = new JSONObject();
+                        json.put("id_sewa", idSewa);
+                        json.put("nama_penghuni", nama);
+                        json.put("no_wa", "-");
+                        json.put("pekerjaan", "-");
+                        json.put("durasi_sewa", "-");
+                        json.put("tgl_checkin", "-");
+                        json.put("tgl_checkout", "-");
+                        json.put("total_tarif", 0);
+                        json.put("sudah_dibayar", 0);
+                        json.put("sisa_bayar", 0);
+                    } catch (Exception e) { e.printStackTrace(); }
+                }
+            }
+            cLokal.close();
+        }
+        return json;
     }
 
-    // ... Method addPendingKamar, addPendingSewa, getters, deleters (sama seperti sebelumnya) ...
     public void addPendingKamar(String email, String no, String fas, double h, double m, double b) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -210,9 +236,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("harian", h); values.put("mingguan", m); values.put("bulanan", b);
         db.insert("tb_pending_kamar", null, values);
     }
-
-    public Cursor getPendingKamar() { return this.getReadableDatabase().rawQuery("SELECT * FROM tb_pending_kamar", null); }
-    public void deletePendingKamar(int id) { this.getWritableDatabase().delete("tb_pending_kamar", "id = ?", new String[]{String.valueOf(id)}); }
 
     public void addPendingSewa(String email, String no, String nama, String wa, String kerja, String durasi, double total, String status, String tglIn, String tglOut) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -222,6 +245,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put("tgl_in", tglIn); values.put("tgl_out", tglOut);
         db.insert("tb_pending_sewa", null, values);
     }
+
+    public Cursor getPendingKamar() { return this.getReadableDatabase().rawQuery("SELECT * FROM tb_pending_kamar", null); }
+    public void deletePendingKamar(int id) { this.getWritableDatabase().delete("tb_pending_kamar", "id = ?", new String[]{String.valueOf(id)}); }
+
     public Cursor getPendingSewa() { return this.getReadableDatabase().rawQuery("SELECT * FROM tb_pending_sewa", null); }
     public void deletePendingSewa(int id) { this.getWritableDatabase().delete("tb_pending_sewa", "id = ?", new String[]{String.valueOf(id)}); }
 }

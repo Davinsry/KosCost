@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.koscost.R;
 import com.example.koscost.api.ApiService;
 import com.example.koscost.api.RetrofitClient;
-import com.example.koscost.database.DatabaseHelper; // Import DatabaseHelper
+import com.example.koscost.database.DatabaseHelper; // Pastikan import ini ada
 import com.example.koscost.utils.CurrencyTextWatcher;
 
 import org.json.JSONObject;
@@ -40,7 +40,7 @@ public class EditKamarActivity extends AppCompatActivity {
         etBulanan = findViewById(R.id.et_harga_bulanan);
         btnUpdate = findViewById(R.id.btn_update_kamar); // Pastikan ID ini sesuai XML
         btnBack = findViewById(R.id.btn_back);
-        tvJudul = findViewById(R.id.tv_judul_tambah); // ID judul di XML mungkin perlu disesuaikan jika beda
+        tvJudul = findViewById(R.id.tv_judul_halaman); // ID judul di XML mungkin perlu disesuaikan jika beda
 
         // Setup Back Button
         if (btnBack != null) {
